@@ -72,6 +72,7 @@
                     <button class="btn cleanup" onclick="fixAllCountryCases()">Fix All Country Cases</button>
                     <button class="btn secondary" onclick="applyPdfAllocations()" title="Paste PDF text above first">Apply PDF/Text Allocations</button>
                     <button class="btn danger" onclick="handleClearDuplicates()">Clear Duplicates</button>
+                    <button class="btn danger" onclick="deleteSchool()">Delete School</button>
                     <button class="btn danger" onclick="clearAllData()">Clear All Data</button>
                     <button class="btn danger" onclick="removeSingleDelegate()">Delete Delegate by Name</button>
                 </div>
@@ -848,6 +849,48 @@
                         document.getElementById('status').textContent = `❌ Error deleting delegate: ${error.message}`;
                     });
             }
+        }
+
+        // *** NEW: DELETE ENTIRE SCHOOL ***
+        function deleteSchool() {
+            const enteredPassword = prompt("Enter admin password to delete an ENTIRE school:", "");
+            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
+                if (enteredPassword) alert("Incorrect password. Deletion cancelled.");
+                return;
+            }
+
+            const schoolNameInput = prompt("Enter the School Name to delete (ALL delegates from this school will be removed):").trim();
+            if (!schoolNameInput) return;
+
+            const schoolNameNormalized = toSentenceCase(schoolNameInput);
+
+            // Find all delegates belonging to this school
+            const delegatesToDelete = allDelegates.filter(d => toSentenceCase(d.school) === schoolNameNormalized);
+
+            if (delegatesToDelete.length === 0) {
+                document.getElementById('status').textContent = `❌ Error: No delegates found for school "${schoolNameNormalized}". Check spelling.`;
+                return;
+            }
+
+            const confirmMsg = `WARNING: You are about to delete ${delegatesToDelete.length} delegate(s) from "${schoolNameNormalized}".\n\nThis action cannot be undone.\n\nAre you sure?`;
+            if (!confirm(confirmMsg)) {
+                document.getElementById('status').textContent = "Delete school operation cancelled.";
+                return;
+            }
+
+            // Prepare updates for atomic deletion
+            const updates = {};
+            delegatesToDelete.forEach(d => {
+                updates[d.firebaseKey] = null;
+            });
+
+            delegatesRef.update(updates)
+                .then(() => {
+                    document.getElementById('status').textContent = `✅ Successfully deleted ${delegatesToDelete.length} delegates from "${schoolNameNormalized}".`;
+                })
+                .catch(error => {
+                    document.getElementById('status').textContent = `❌ Error deleting school: ${error.message}`;
+                });
         }
 
         function clearAllData() {
