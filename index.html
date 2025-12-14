@@ -4,37 +4,84 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PyleaMUN Data Organizer</title>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #E8EAE6; color: #333; }
+        /* --- 1. CSS VARIABLES & RESET --- */
+        :root {
+            --primary: #005b63;
+            --secondary: #00796b;
+            --accent: #00b4a0;
+            --bg-body: #E8EAE6;
+            --bg-panel: #e0f7fa;
+            --text-main: #333;
+            --danger: #d32f2f;
+            --success: #2e7d32;
+            --warning: #ff9800;
+        }
+        
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: var(--bg-body); color: var(--text-main); }
+        *, *::before, *::after { box-sizing: border-box; }
+        
         .hidden { display: none !important; }
+
+        /* --- 2. HEADER & LAYOUT --- */
         .letterhead { display: flex; justify-content: space-between; align-items: center; background-color: #D6DBD2; border-bottom: 2px solid #444; padding: 10px 20px; min-height: 100px; flex-wrap: wrap; }
         .address, .contact { width: 30%; font-size: 0.9rem; }
         .contact { display: flex; flex-direction: column; align-items: flex-end; }
         .logo-container { width: 120px; text-align: center; }
         .logo { width: 120px; height: auto; }
         .letterhead a { color: #0066cc; text-decoration: none; }
-        main { padding: 2em; max-width: 1000px; margin: auto; }
-        h1, h2 { text-align: center; color: #005b63; }
-        .container { background: #e0f7fa; padding: 2em; border-radius: 16px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); }
-        textarea { width: 100%; height: 180px; padding: 0.7em; border-radius: 8px; border: 1px solid #ccc; font-size: 1em; box-sizing: border-box; font-family: monospace; }
-        .hint { font-size: .9em; color:#066; margin-top:.4rem }
-        .button-group { display: flex; justify-content: center; gap: 10px; margin: 1.5em 0; flex-wrap: wrap; }
-        .btn { background-color: #00b4a0; color: white; font-size: 1em; padding: 0.8em 1.5em; border: none; border-radius: 50px; cursor: pointer; transition: all 0.3s ease; }
-        .btn:hover { background-color: #00897b; }
-        .btn.secondary { background-color: #00796b; }
-        .btn.danger { background-color: #d32f2f; }
-        .btn.export { background-color: #1e88e5; }
-        .btn.print { background-color: #4CAF50; padding: 0.4em 0.8em; font-size: 0.9em; margin-left: 15px; }
-        .btn.cleanup { background-color: #ff9800; }
-        #status { text-align: center; font-weight: bold; color: #004d40; margin-top: 1em; min-height: 24px; }
-        #output h3 { color: #00796b; border-bottom: 2px solid #b2dfdb; padding-bottom: 5px; display: flex; justify-content: space-between; align-items: center;}
-        #output ul { list-style-type: none; padding-left: 0; }
-        #output li { padding: 5px 0; }
-        .advisor-info { background-color: #d0e8e6; border-radius: 8px; padding: 10px; margin: 5px 0 15px 0; font-size: 0.9em; }
-        .report { background:#fff; border-radius:12px; padding:1rem; box-shadow:0 4px 12px rgba(0,0,0,.08); margin-top:1rem }
-        .report h4 { margin:.2rem 0 .6rem; color:#005b63 }
-        .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace }
-        .small { font-size:.9em }
+
+        main { padding: 2em; max-width: 1100px; margin: auto; }
+        h1 { text-align: center; color: var(--primary); margin-bottom: 0.5em; }
+        h2 { color: var(--secondary); margin-top: 0; }
+
+        .panel { background: var(--bg-panel); padding: 2em; border-radius: 12px; box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1); }
+        
+        /* --- 3. INPUTS & BUTTONS --- */
+        textarea { width: 100%; height: 150px; padding: 1em; border-radius: 8px; border: 1px solid #ccc; font-family: monospace; font-size: 0.9rem; resize: vertical; }
+        .hint { font-size: 0.85em; color: var(--primary); margin-top: 0.5rem; font-style: italic; }
+
+        .toolbar { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 1.5em 0; padding-bottom: 1.5em; border-bottom: 1px solid #b2dfdb; }
+        
+        .btn { 
+            background-color: var(--accent); color: white; border: none; 
+            padding: 0.6em 1.2em; border-radius: 20px; cursor: pointer; 
+            font-size: 0.9em; font-weight: 600; transition: filter 0.2s; 
+            display: inline-flex; align-items: center; gap: 5px;
+        }
+        .btn:hover { filter: brightness(90%); }
+        .btn.primary { background-color: var(--primary); font-size: 1em; padding: 0.8em 2em; }
+        .btn.danger { background-color: var(--danger); }
+        .btn.warning { background-color: var(--warning); color: #333; }
+        .btn.excel { background-color: #2e7d32; } /* Excel Green */
+        .btn.pdf { background-color: #d32f2f; }   /* PDF Red */
+
+        /* --- 4. OUTPUT AREA --- */
+        #status { text-align: center; font-weight: bold; margin: 1em 0; min-height: 1.5em; color: var(--primary); }
+        
+        .result-group { margin-bottom: 20px; page-break-inside: avoid; }
+        .result-group h3 { 
+            color: var(--secondary); 
+            border-bottom: 2px solid #b2dfdb; 
+            padding-bottom: 5px; 
+            display: flex; justify-content: space-between; align-items: center; 
+            margin-top: 1.5em;
+        }
+        
+        .advisor-box { background-color: #d0e8e6; border-radius: 6px; padding: 8px 12px; font-size: 0.85em; margin-bottom: 10px; }
+        
+        ul.data-list { list-style: none; padding: 0; }
+        ul.data-list li { padding: 4px 0; border-bottom: 1px dotted #ccc; }
+        ul.data-list li:last-child { border-bottom: none; }
+
+        .report-box { background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 15px; }
+
+        /* --- 5. PDF EXPORT STYLES (Hidden from screen, visible to generator) --- */
+        #pdf-container { display: none; } 
     </style>
 </head>
 <body>
@@ -42,40 +89,51 @@
     <div id="app-container" class="hidden">
         <div class="letterhead">
             <div class="address"><strong>4 Isminis Str.</strong><br>Pylaia, Thessaloniki - 55535</div>
-            <div class="logo-container"><img src="https://pyleamun.github.io/interview-guide/pyleaMUNfinallogo_transparent.png" alt="PyleaMUN Logo" class="logo"></div>
+            <div class="logo-container">
+                <img src="https://pyleamun.github.io/interview-guide/pyleaMUNfinallogo_transparent.png" alt="Logo" class="logo">
+            </div>
             <div class="contact">
                 <div>📞 +30 2310329199</div>
                 <div>📧 <a href="mailto:pyleamun@gmail.com">pyleamun@gmail.com</a></div>
-                <div>🌐 <a href="https://pyleamun.github.io/pyleamun2026/" target="_blank">pyleamun.github.io/pyleamun2026</a></div>
+                <div>🌐 <a href="https://pyleamun.github.io/pyleamun2026/" target="_blank">pyleamun.github.io</a></div>
             </div>
         </div>
+
         <main>
             <h1>🏛️ PyleaMUN Delegations Organizer</h1>
-            <div class="container">
-                <h2>Paste Form Submission or PDF Text Below</h2>
-                <textarea id="rawDataInput" placeholder="Paste the raw text from Formsubmit OR paste the text you copy from a 'PyleaMUN Delegate List' PDF (Ctrl/Cmd+A → Ctrl/Cmd+C) ..."></textarea>
-                <div class="hint">Tip: To apply country re-allocations from a committee PDF (e.g., “PyleaMUN Delegate List – NATO 🛡️”), paste its text above and click <em>Apply PDF/Text Allocations</em>.</div>
-                <div class="button-group">
-                    <button id="processBtn" class="btn">Process Data</button>
-                    <button id="addSingleBtn" class="btn secondary">Add Single Delegate</button>
+            
+            <div class="panel">
+                <h2>Data Input</h2>
+                <textarea id="rawDataInput" placeholder="Paste data here (Formsubmit email text OR PDF text)..."></textarea>
+                <div class="hint">Tip: Paste text from 'PyleaMUN Delegate List – Committee' PDF to apply re-allocations.</div>
+                
+                <div class="toolbar">
+                    <button id="btnProcess" class="btn primary">📥 Process Raw Data</button>
+                    <button id="btnAddSingle" class="btn primary">👤 Add Single Delegate</button>
+                    <button id="btnSyncPdf" class="btn warning" title="Paste PDF text above first">🔄 Apply PDF/Text Allocations</button>
                 </div>
+
                 <div id="status"></div>
-                <div id="controls" class="button-group" style="display: none;">
-                    <button class="btn secondary" onclick="displayByCommittee()">View by Committee</button>
-                    <button class="btn secondary" onclick="displayByCountry()">View by Country</button>
-                    <button class="btn secondary" onclick="displayBySchool()">View by School</button>
-                    <button class="btn secondary" onclick="editDelegateInfo()">Edit Delegate</button>
-                    <button class="btn secondary" onclick="editSchoolName()">Edit School Name</button>
-                    <button class="btn secondary" onclick="editCountryName()">Edit Country Name</button>
-                    <button class="btn secondary" onclick="editCommitteeName()">Edit Committee Name</button>
-                    <button class="btn secondary" onclick="bulkRenameDelegate()">Bulk Rename Delegate</button>
-                    <button class="btn cleanup" onclick="fixAllCountryCases()">Fix All Country Cases</button>
-                    <button class="btn secondary" onclick="applyPdfAllocations()" title="Paste PDF text above first">Apply PDF/Text Allocations</button>
-                    <button class="btn danger" onclick="handleClearDuplicates()">Clear Duplicates</button>
-                    <button class="btn danger" onclick="deleteSchool()">Delete School</button>
-                    <button class="btn danger" onclick="clearAllData()">Clear All Data</button>
-                    <button class="btn danger" onclick="removeSingleDelegate()">Delete Delegate by Name</button>
+
+                <div id="controls" class="toolbar hidden">
+                    <button class="btn" onclick="App.renderView('committee')">View by Committee</button>
+                    <button class="btn" onclick="App.renderView('country')">View by Country</button>
+                    <button class="btn" onclick="App.renderView('school')">View by School</button>
+                    
+                    <button class="btn" onclick="App.editSingleDelegate()">Edit Delegate</button>
+                    <button class="btn danger" onclick="App.deleteSingleDelegate()">Delete Delegate</button>
+                    
+                    <button class="btn" onclick="App.bulkEdit('school')">Rename School</button>
+                    <button class="btn" onclick="App.bulkEdit('country')">Rename Country</button>
+                    <button class="btn" onclick="App.bulkEdit('committee')">Rename Committee</button>
+                    <button class="btn" onclick="App.bulkEdit('delegateName')">Bulk Rename Delegate</button>
+                    
+                    <button class="btn warning" onclick="App.fixAllCountryCases()">Fix Capitalization</button>
+                    <button class="btn danger" onclick="App.clearDuplicates()">Clear Duplicates</button>
+                    <button class="btn danger" onclick="App.deleteSchool()">Delete School</button>
+                    <button class="btn danger" onclick="App.nukeDatabase()">⚠️ Clear All Data</button>
                 </div>
+
                 <div id="output"></div>
             </div>
         </main>
@@ -85,1351 +143,410 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // --- PASSWORDS ---
-        const SHARED_PASSWORD = "329199p";
-        const CLEAR_DATA_PASSWORD = "panos26@";
+        /**
+         * ==========================================
+         * 1. CONFIGURATION & CONSTANTS
+         * ==========================================
+         */
+        const Config = {
+            passwords: {
+                organizer: "329199p",
+                admin: "panos26@"
+            },
+            firebase: {
+                apiKey: "AIzaSyBeEVJ9eu-pVhK_z3ds8UurrqaBeBBDwN4",
+                authDomain: "pyleamun-data.firebaseapp.com",
+                databaseURL: "https://pyleamun-data-default-rtdb.europe-west1.firebasedatabase.app",
+                projectId: "pyleamun-data",
+                storageBucket: "pyleamun-data.appspot.com",
+                messagingSenderId: "586095551075",
+                appId: "1:586095551075:web:56d0e723275843d6dc4e56"
+            },
+            committees: {
+                map: {
+                    "UNEP": "UN Environment Programme 🌱",
+                    "SC": "Security Council 🔐",
+                    "ECOSOC": "Economic & Social Council 💰",
+                    "NATO": "NATO 🛡️",
+                    "WHO": "World Health Organisation 🏥",
+                    "HRC": "Human Rights Council 🤝",
+                    "UNESCO": "UNESCO 📚",
+                    "UN Women": "UN Women 👩⚖️",
+                    "HCC": "Historical Crisis Committee ⏳",
+                    "UN": "UN Women 👩⚖️"
+                }
+            },
+            specialValues: {
+                hccPlaceholder: "City State of (to be communicated shortly)",
+                upperCaseCountries: ["USA", "UK"]
+            }
+        };
 
-        // Surface runtime errors instead of rendering a blank page
-        window.addEventListener('error', function (ev) {
-            try {
+        /**
+         * ==========================================
+         * 2. UTILITIES
+         * ==========================================
+         */
+        const Utils = {
+            toSentenceCase: (str) => {
+                if (!str) return "";
+                return str.trim().toLowerCase().replace(/\b\w/g, c => c.toUpperCase()).replace(/\bOf\b/gi, 'of');
+            },
+            formatCountry: (str) => {
+                if (!str) return "N/A";
+                const clean = str.trim();
+                if (Config.specialValues.upperCaseCountries.includes(clean.toUpperCase())) return clean.toUpperCase();
+                return Utils.toSentenceCase(clean);
+            },
+            normalizeHCC: (delegate) => {
+                if (delegate.committee === Config.committees.map["HCC"]) return Config.specialValues.hccPlaceholder;
+                return delegate.country;
+            },
+            groupBy: (arr, key) => arr.reduce((acc, obj) => { (acc[obj[key]] = acc[obj[key]] || []).push(obj); return acc; }, {}),
+            requireAuth: (level, callback) => {
+                const targetPwd = level === 'admin' ? Config.passwords.admin : Config.passwords.organizer;
+                const stored = sessionStorage.getItem('pyleamun-auth');
+                if (stored === Config.passwords.organizer || stored === Config.passwords.admin) {
+                    if (level === 'admin' && stored !== Config.passwords.admin) {} else { callback(); return; }
+                }
+                const input = prompt(`Enter ${level.toUpperCase()} password:`);
+                if (input === targetPwd || (level === 'organizer' && input === Config.passwords.admin)) {
+                    sessionStorage.setItem('pyleamun-auth', input);
+                    callback();
+                } else if (input) alert("❌ Incorrect password.");
+            }
+        };
+
+        /**
+         * ==========================================
+         * 3. DATABASE SERVICE
+         * ==========================================
+         */
+        const DB = {
+            ref: null, data: [],
+            init: () => {
+                try {
+                    firebase.initializeApp(Config.firebase);
+                    DB.ref = firebase.database().ref('delegates');
+                    DB.ref.on('value', (snapshot) => {
+                        const val = snapshot.val();
+                        DB.data = [];
+                        if (val) for (const key in val) DB.data.push({ ...val[key], firebaseKey: key });
+                        App.updateStatus();
+                    });
+                } catch (e) { document.getElementById('status').innerText = "❌ Database Connection Failed"; }
+            },
+            add: (d) => DB.ref.push(d),
+            update: (u) => DB.ref.update(u),
+            remove: (k) => DB.ref.child(k).remove(),
+            nuke: () => DB.ref.remove()
+        };
+
+        /**
+         * ==========================================
+         * 4. MAIN APP LOGIC
+         * ==========================================
+         */
+        const App = {
+            init: () => {
+                DB.init();
                 document.getElementById('app-container').classList.remove('hidden');
-                document.getElementById('status').textContent = '❌ Error: ' + (ev.message || 'Unknown script error');
-            } catch (_) {}
-        });
+                document.getElementById('btnProcess').onclick = App.processRawInput;
+                document.getElementById('btnAddSingle').onclick = App.addSingleDelegate;
+                document.getElementById('btnSyncPdf').onclick = App.syncPdfAllocations;
+            },
+            updateStatus: () => {
+                const schools = new Set(DB.data.map(d => d.school)).size;
+                document.getElementById('status').innerHTML = `Delegates: <b>${DB.data.length}</b> | Schools: <b>${schools}</b>`;
+                if(DB.data.length > 0) document.getElementById('controls').classList.remove('hidden');
+            },
+            processRawInput: () => {
+                const raw = document.getElementById('rawDataInput').value;
+                if (!raw.trim()) return alert("Paste data first!");
+                const parsed = Parsers.parseFormSubmit(raw);
+                if (!parsed) return alert("❌ Could not parse format.");
+                const delegates = Parsers.structureData(parsed);
+                if (delegates.length === 0) return alert("⚠️ No delegates found.");
+                Promise.all(delegates.map(d => DB.add(d)))
+                    .then(() => {
+                        document.getElementById('status').innerText = `✅ Added ${delegates.length} delegates from ${parsed.School}`;
+                        document.getElementById('rawDataInput').value = "";
+                        document.getElementById('output').innerHTML = "";
+                    }).catch(e => alert("Error: " + e.message));
+            },
+            addSingleDelegate: () => {
+                const name = prompt("Full Name:"); if (!name) return;
+                const school = prompt("School:");
+                const commShort = prompt("Committee Code (SC, WHO, etc):").toUpperCase();
+                let country = prompt("Country/Topic:");
+                if (commShort === "HCC") { country = Config.specialValues.hccPlaceholder; alert("Set to HCC placeholder topic."); }
+                DB.add({
+                    name: Utils.toSentenceCase(name), school: Utils.toSentenceCase(school),
+                    committee: Config.committees.map[commShort] || commShort, country: Utils.formatCountry(country),
+                    advisor1_email: "", advisor1_mobile: "", advisor2_email: "", advisor2_mobile: ""
+                }).then(() => alert(`✅ Added ${name}`));
+            },
+            renderView: (mode) => {
+                const container = document.getElementById('output');
+                container.innerHTML = "";
+                let html = "";
+                
+                // DATA PREP
+                const dataset = DB.data.map(d => ({ ...d, displayCountry: Utils.normalizeHCC(d) }));
+                const grouped = Utils.groupBy(dataset, mode === 'delegateName' ? 'school' : mode);
+                const keys = Object.keys(grouped).sort();
 
-        // --- FIREBASE CONFIG ---
-        const firebaseConfig = {
-            apiKey: "AIzaSyBeEVJ9eu-pVhK_z3ds8UurrqaBeBBDwN4",
-            authDomain: "pyleamun-data.firebaseapp.com",
-            databaseURL: "https://pyleamun-data-default-rtdb.europe-west1.firebasedatabase.app",
-            projectId: "pyleamun-data",
-            storageBucket: "pyleamun-data.appspot.com",
-            messagingSenderId: "586095551075",
-            appId: "1:586095551075:web:56d0e723275843d6dc4e56"
-        };
+                // BUILD HTML
+                let title = mode === 'school' ? "🏫 Delegates by School" : (mode === 'committee' ? "📋 Delegates by Committee" : "🌍 Delegates by Country");
+                html += `<h2>${title}</h2>`;
+                
+                // EXPORT BUTTONS
+                html += `<div style="text-align:center; margin-bottom:20px; display:flex; gap:10px; justify-content:center;">
+                            <button class="btn excel" onclick="Exporter.excel('${mode}')">📊 Download Excel</button>
+                            <button class="btn pdf" onclick="Exporter.pdf('${mode}')">📄 Download PDF</button>
+                         </div>`;
 
-        // *** COMMITTEE MAPPING - CENTRALIZED ***
-        const COMMITTEE_MAP = {
-            "UNEP": "UN Environment Programme 🌱",
-            "SC": "Security Council 🔐",
-            "ECOSOC": "Economic & Social Council 💰",
-            "NATO": "NATO 🛡️",
-            "WHO": "World Health Organisation 🏥",
-            "HRC": "Human Rights Council 🤝",
-            "UNESCO": "UNESCO 📚",
-            "UN Women": "UN Women 👩⚖️",
-            "HCC": "Historical Crisis Committee ⏳",
-            "UN": "UN Women 👩⚖️"
-        };
-
-        // Human‐readable committee names → short codes (for PDF headings)
-        const COMMITTEE_ALIASES = {
-            "Security Council": "SC",
-            "UN Environment Programme": "UNEP",
-            "Economic & Social Council": "ECOSOC",
-            "World Health Organisation": "WHO",
-            "Human Rights Council": "HRC",
-            "UNESCO": "UNESCO",
-            "UN Women": "UN Women",
-            "Historical Crisis Committee": "HCC",
-            "NATO": "NATO"
-        };
-
-        // *** HCC COUNTRY VALUE - CENTRALIZED ***
-        const HCC_COUNTRY_MAPPED_NAME = COMMITTEE_MAP["HCC"];
-        const HCC_COUNTRY_VALUE = "City State of (to be communicated shortly)";
-
-        // *** LIST OF COUNTRY ACRONYMS TO KEEP UPPERCASE ***
-        const COUNTRY_ACRONYMS = ["USA", "UK"]; // Only USA and UK
-
-        // --- INITIALIZATION ---
-        let database, delegatesRef;
-        try {
-            firebase.initializeApp(firebaseConfig);
-            database = firebase.database();
-            delegatesRef = database.ref('delegates');
-        } catch (e) {
-            console.error('Firebase init error:', e);
-        }
-        let allDelegates = [];
-
-        function checkPassword() {
-            const storedPassword = sessionStorage.getItem('pyleamun-auth');
-            if (storedPassword === SHARED_PASSWORD) {
-                initializeApp();
-                return;
-            }
-            const enteredPassword = prompt("Please enter the organizer password:", "");
-            if (enteredPassword === SHARED_PASSWORD) {
-                sessionStorage.setItem('pyleamun-auth', enteredPassword);
-                initializeApp();
-            } else if (enteredPassword) {
-                alert("Incorrect password.");
-            }
-        }
-
-        function initializeApp() {
-            document.getElementById('app-container').classList.remove('hidden');
-            if (!delegatesRef) {
-                document.getElementById('status').textContent = '❌ Firebase not initialized. Check config or network.';
-                return;
-            }
-            delegatesRef.on('value', snapshot => {
-                const data = snapshot.val();
-                allDelegates = [];
-                if (data) {
-                    for (const key in data) {
-                        allDelegates.push({
-                            ...data[key],
-                            firebaseKey: key
+                keys.forEach(key => {
+                    const list = grouped[key];
+                    const first = list[0];
+                    let advisors = mode === 'school' ? (first.advisor1_email ? `<b>Adv:</b> ${first.advisor1_email} ${first.advisor1_mobile}` : '') : '';
+                    
+                    html += `<div class="result-group">
+                        <h3>${key} <span style="font-size:0.8em">(${list.length})</span></h3>
+                        ${advisors ? `<div class="advisor-box">${advisors}</div>` : ''}
+                        <ul class="data-list">`;
+                    
+                    list.sort((a,b) => a.name.localeCompare(b.name)).forEach((d, i) => {
+                        let text = mode === 'school' 
+                            ? `<b>${d.name}</b> — ${d.committee} (${d.displayCountry})`
+                            : `<b>${d.name}</b> (${d.school}) — ${mode==='committee' ? d.displayCountry : d.committee}`;
+                        html += `<li>${i+1}. ${text}</li>`;
+                    });
+                    html += `</ul></div>`;
+                });
+                container.innerHTML = html;
+            },
+            // EDITING FUNCTIONS
+            bulkEdit: (field) => {
+                Utils.requireAuth('organizer', () => {
+                    if(field === 'delegateName') { App.bulkRenameDelegate(); return; }
+                    const oldVal = prompt(`Enter CURRENT ${field} name:`); if (!oldVal) return;
+                    const newVal = prompt(`Enter NEW ${field} name:`); if (!newVal) return;
+                    const updates = {}; let count = 0;
+                    DB.data.forEach(d => {
+                        if (d[field] && d[field].toLowerCase() === oldVal.trim().toLowerCase()) {
+                            if(field === 'country' && d.committee === Config.committees.map['HCC']) return;
+                            updates[`${d.firebaseKey}/${field}`] = field === 'country' ? Utils.formatCountry(newVal) : Utils.toSentenceCase(newVal);
+                            count++;
+                        }
+                    });
+                    if (count > 0 && confirm(`Update ${count} records?`)) DB.update(updates).then(() => alert(`✅ Updated ${count} records.`));
+                });
+            },
+            bulkRenameDelegate: () => {
+                const oldName = prompt("Current Name:"); const school = prompt("School (filter):");
+                if(!oldName || !school) return;
+                const newName = prompt("New Name:");
+                const updates = {}; let count = 0;
+                DB.data.forEach(d => {
+                    if(d.name.toLowerCase() === oldName.toLowerCase() && d.school.toLowerCase() === school.toLowerCase()) {
+                        updates[`${d.firebaseKey}/name`] = Utils.toSentenceCase(newName); count++;
+                    }
+                });
+                if(count > 0) DB.update(updates).then(() => alert("Renamed."));
+            },
+            editSingleDelegate: () => {
+                Utils.requireAuth('organizer', () => {
+                    const name = prompt("Name to Edit:"); if(!name) return;
+                    const targets = DB.data.filter(d => d.name.toLowerCase().includes(name.toLowerCase()));
+                    if(targets.length === 0) return alert("Not found.");
+                    if(targets.length > 1) return alert(`Found ${targets.length} matches.`);
+                    const target = targets[0];
+                    const newName = prompt("Name:", target.name) || target.name;
+                    const newSchool = prompt("School:", target.school) || target.school;
+                    const newCountry = prompt("Country:", target.country) || target.country;
+                    DB.update({
+                        [`${target.firebaseKey}/name`]: newName,
+                        [`${target.firebaseKey}/school`]: newSchool,
+                        [`${target.firebaseKey}/country`]: newCountry
+                    }).then(() => alert("Updated."));
+                });
+            },
+            deleteSingleDelegate: () => {
+                Utils.requireAuth('admin', () => {
+                    const name = prompt("Name to DELETE:"); const school = prompt("School:");
+                    const target = DB.data.find(d => d.name.toLowerCase() === name.toLowerCase() && d.school.toLowerCase() === school.toLowerCase());
+                    if(target && confirm(`Delete ${target.name}?`)) DB.remove(target.firebaseKey).then(() => alert("Deleted."));
+                });
+            },
+            deleteSchool: () => {
+                Utils.requireAuth('admin', () => {
+                    const school = prompt("School Name to DELETE:"); if(!school) return;
+                    const targets = DB.data.filter(d => d.school.toLowerCase() === school.toLowerCase());
+                    if(targets.length > 0 && confirm(`Delete ${targets.length} delegates from ${school}?`)) {
+                        const updates = {}; targets.forEach(t => updates[t.firebaseKey] = null);
+                        DB.update(updates).then(() => alert("School deleted."));
+                    }
+                });
+            },
+            fixAllCountryCases: () => {
+                Utils.requireAuth('admin', () => {
+                    if(!confirm("Normalize all country capitalizations?")) return;
+                    const updates = {}; let count = 0;
+                    DB.data.forEach(d => {
+                        if(d.committee === Config.committees.map['HCC']) return;
+                        const correct = Utils.formatCountry(d.country);
+                        if(d.country !== correct) { updates[`${d.firebaseKey}/country`] = correct; count++; }
+                    });
+                    if(count > 0) DB.update(updates).then(() => alert(`Fixed ${count} countries.`));
+                });
+            },
+            clearDuplicates: () => {
+                Utils.requireAuth('admin', () => {
+                    if(!confirm("Scan and delete duplicates?")) return;
+                    const seen = {}; const toDelete = {}; let count = 0;
+                    DB.data.forEach(d => {
+                        const key = `${d.name}-${d.school}-${d.committee}`.toLowerCase();
+                        if(seen[key]) { toDelete[d.firebaseKey] = null; count++; } else { seen[key] = true; }
+                    });
+                    if(count > 0) DB.update(toDelete).then(() => alert(`Removed ${count} duplicates.`));
+                });
+            },
+            nukeDatabase: () => {
+                Utils.requireAuth('admin', () => { if(confirm("DANGER: DELETE ALL DATA?")) DB.nuke().then(() => location.reload()); });
+            },
+            syncPdfAllocations: () => {
+                Utils.requireAuth('organizer', () => {
+                    const raw = document.getElementById('rawDataInput').value; if(!raw.trim()) return alert("Paste PDF text.");
+                    const result = Parsers.parsePdfText(raw); if(result.assignments.length === 0) return alert("No valid lines found.");
+                    const updates = {}; const log = []; const dbMap = {};
+                    DB.data.forEach(d => { const k = `${d.name.toLowerCase()}|${d.school.toLowerCase()}`; if(!dbMap[k]) dbMap[k]=[]; dbMap[k].push(d); });
+                    result.assignments.forEach(assign => {
+                        const matches = dbMap[`${assign.name.toLowerCase()}|${assign.school.toLowerCase()}`];
+                        if(matches) matches.forEach(d => {
+                            let newCountry = Utils.formatCountry(assign.country);
+                            if(result.committeeShort === 'HCC') newCountry = Config.specialValues.hccPlaceholder;
+                            const newComm = result.committeeShort ? (Config.committees.map[result.committeeShort] || result.committeeShort) : null;
+                            if(d.country !== newCountry) { updates[`${d.firebaseKey}/country`] = newCountry; log.push(`${d.name}: Country -> ${newCountry}`); }
+                            if(newComm && d.committee !== newComm) { updates[`${d.firebaseKey}/committee`] = newComm; log.push(`${d.name}: Committee -> ${newComm}`); }
                         });
-                    }
-                }
-                updateUI();
-                const outputDiv = document.getElementById('output');
-                if (outputDiv.innerHTML.includes('<h2>')) {
-                    if (outputDiv.querySelector('h2').textContent.includes('School')) displayBySchool();
-                    else if (outputDiv.querySelector('h2').textContent.includes('Committee')) displayByCommittee();
-                    else if (outputDiv.querySelector('h2').textContent.includes('Country')) displayByCountry();
-                }
-            });
-        }
-
-        // --- MODIFIED updateUI FUNCTION TO INCLUDE SCHOOL COUNT ---
-        function updateUI() {
-            const controlsEl = document.getElementById('controls');
-            const uniqueSchools = [...new Set(allDelegates.map(d => d.school))];
-            const schoolCount = uniqueSchools.length;
-            document.getElementById('status').innerHTML =
-                `Total delegates in database: <b>${allDelegates.length}</b>.
-                Total schools registered: <b>${schoolCount}</b>.`;
-            controlsEl.style.display = allDelegates.length > 0 ? 'flex' : 'none';
-        }
-
-        // --- EVENT LISTENERS ---
-        document.getElementById('processBtn').addEventListener('click', handleProcessData);
-        document.getElementById('addSingleBtn').addEventListener('click', addSingleDelegate);
-
-        // --- DATA & DISPLAY FUNCTIONS (existing) ---
-        function handleProcessData() {
-            const rawDataInput = document.getElementById('rawDataInput');
-            if (!rawDataInput.value.trim()) {
-                document.getElementById('status').textContent = "⚠️ Please paste data into the text box.";
-                return;
-            }
-            const parsedData = parseRawData(rawDataInput.value);
-            if (parsedData) {
-                const newDelegates = structureDelegateData(parsedData);
-                if (newDelegates && newDelegates.length > 0) {
-                    let addedCount = 0;
-                    const promises = newDelegates.map(delegate =>
-                        delegatesRef.push(delegate).then(() => addedCount++)
-                    );
-                    Promise.all(promises).then(() => {
-                         document.getElementById('status').textContent = `✅ Added ${addedCount} delegates for "${toSentenceCase(parsedData.School || 'Unknown School')}" to the database.`;
-                         rawDataInput.value = '';
-                         document.getElementById('output').innerHTML = '';
-                    }).catch(error => {
-                         document.getElementById('status').textContent = `❌ Error saving delegates: ${error.message}`;
                     });
-                } else {
-                     document.getElementById('status').textContent = `⚠️ No delegate data found in the input.`;
-                }
-
-            } else {
-                document.getElementById('status').textContent = "❌ Error: Could not parse the data. Please check the format.";
-            }
-        }
-
-        function addSingleDelegate() {
-            const name = prompt("Enter Delegate's Full Name (e.g., John Smith):");
-            if (!name) return;
-
-            const school = prompt("Enter School Name (e.g., Athens College):");
-            if (!school) return;
-
-            const committeeShort = prompt("Enter Committee Short Code (e.g., SC, WHO, UNEP, HCC):").toUpperCase();
-            if (!committeeShort) return;
-
-            let country = prompt("Enter Country/Topic Represented:");
-            if (!country) return;
-
-            const processedName = toSentenceCase(name);
-            const processedSchool = toSentenceCase(school);
-            let processedCountry = formatCountryName(country);
-            if (committeeShort === "HCC") {
-                processedCountry = HCC_COUNTRY_VALUE;
-                alert(`Committee is HCC. Country/Topic set to: ${processedCountry}`);
-            }
-
-            const advisor1_email = prompt("Enter Advisor 1 Email (optional):") || 'N/A';
-            const advisor1_mobile = prompt("Enter Advisor 1 Mobile (optional):") || 'N/A';
-            const advisor2_email = prompt("Enter Advisor 2 Email (optional):") || 'N/A';
-            const advisor2_mobile = prompt("Enter Advisor 2 Mobile (optional):") || 'N/A';
-
-            const mappedCommittee = COMMITTEE_MAP[committeeShort] || committeeShort;
-
-            const delegateObject = {
-                name: processedName,
-                school: processedSchool,
-                committee: mappedCommittee,
-                country: processedCountry,
-                advisor1_email: advisor1_email,
-                advisor1_mobile: advisor1_mobile,
-                advisor2_email: advisor2_email,
-                advisor2_mobile: advisor2_mobile,
-            };
-
-            delegatesRef.push(delegateObject)
-                .then(() => {
-                    document.getElementById('status').textContent = `✅ Successfully added delegate ${processedName} from ${processedSchool}.`;
-                })
-                .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error adding delegate: ${error.message}`;
+                    if(log.length > 0) {
+                        if(confirm(`Apply ${log.length} updates?`)) DB.update(updates).then(() => alert("Updates applied."));
+                    } else alert("All matched delegates are up to date.");
                 });
-        }
-
-        // *** NEW: Apply allocations from pasted PDF/text ***
-        function applyPdfAllocations() {
-            const enteredPassword = prompt("Please enter the organizer password to apply PDF/Text allocations:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Operation cancelled.");
-                return;
             }
-
-            const raw = document.getElementById('rawDataInput').value;
-            if (!raw.trim()) {
-                document.getElementById('status').textContent = "⚠️ Paste the PDF or text content above, then try again.";
-                return;
-            }
-
-            const { committeeShort, assignments } = parsePdfDelegateList(raw);
-            if (!assignments || assignments.length === 0) {
-                document.getElementById('status').textContent = "❌ Couldn't detect any 'Name (School) - Representing: Country' lines in the pasted text.";
-                return;
-            }
-
-            const targetCommitteeName = committeeShort ? (COMMITTEE_MAP[committeeShort] || committeeShort) : null;
-
-            // Build index of existing delegates by Name+School (array in case of duplicates)
-            const index = {};
-            allDelegates.forEach(d => {
-                const key = `${toSentenceCase(d.name)}::${toSentenceCase(d.school)}`;
-                if (!index[key]) index[key] = [];
-                index[key].push(d);
-            });
-
-            const updates = {};
-            const changedDelegates = [];
-            const movedCommittee = [];
-            const unchanged = [];
-            const notFound = [];
-
-            assignments.forEach(a => {
-                const nameNorm = toSentenceCase(a.name.trim());
-                const schoolNorm = toSentenceCase(a.school.trim());
-                const key = `${nameNorm}::${schoolNorm}`;
-                const matches = index[key];
-
-                if (!matches || matches.length === 0) {
-                    notFound.push(`${nameNorm} (${schoolNorm}) → ${a.country}`);
-                    return;
-                }
-
-                // Prepare new country (respect acronym casing, HCC rule if applicable)
-                let newCountry = formatCountryName(a.country.trim());
-                if (committeeShort === 'HCC') newCountry = HCC_COUNTRY_VALUE;
-
-                matches.forEach(d => {
-                    const paths = {};
-                    // Update country if changed
-                    if ((d.country || '') !== newCountry) {
-                        paths[`${d.firebaseKey}/country`] = newCountry;
-                    }
-                    // If committee detected in text, align committee too (e.g., moving into NATO list)
-                    if (targetCommitteeName && d.committee !== targetCommitteeName) {
-                        paths[`${d.firebaseKey}/committee`] = targetCommitteeName;
-                    }
-
-                    const deltaKeys = Object.keys(paths);
-                    if (deltaKeys.length > 0) {
-                        deltaKeys.forEach(p => { updates[p] = paths[p]; });
-                        changedDelegates.push(`${nameNorm} (${schoolNorm}) → ${newCountry}${targetCommitteeName ? ` [${targetCommitteeName}]` : ''}`);
-                        if (paths[`${d.firebaseKey}/committee`]) {
-                            movedCommittee.push(`${nameNorm} (${schoolNorm}) to ${targetCommitteeName}`);
-                        }
-                    } else {
-                        unchanged.push(`${nameNorm} (${schoolNorm})`);
-                    }
-                });
-            });
-
-            if (Object.keys(updates).length === 0) {
-                document.getElementById('status').textContent = `ℹ️ No changes were necessary. (${assignments.length} parsed, all already up to date.)`;
-                renderAllocationReport({ committeeShort, targetCommitteeName, changedDelegates, movedCommittee, notFound, unchanged });
-                return;
-            }
-
-            const confirmMsg = `About to apply ${Object.keys(updates).length} field update(s) across ${new Set(changedDelegates.map(x => x.split(' (')[0])).size} delegate(s).${targetCommitteeName ? `\nCommittee in text: ${targetCommitteeName}` : ''}\nProceed?`;
-            if (!confirm(confirmMsg)) {
-                document.getElementById('status').textContent = 'Operation cancelled.';
-                return;
-            }
-
-            delegatesRef.update(updates)
-                .then(() => {
-                    document.getElementById('status').textContent = `✅ Applied ${Object.keys(updates).length} field update(s) for ${new Set(changedDelegates.map(x => x.split(' (')[0])).size} delegate(s).`;
-                    renderAllocationReport({ committeeShort, targetCommitteeName, changedDelegates, movedCommittee, notFound, unchanged });
-                })
-                .catch(err => {
-                    document.getElementById('status').textContent = `❌ Error applying updates: ${err.message}`;
-                    console.error(err);
-                });
-        }
-
-        function renderAllocationReport({ committeeShort, targetCommitteeName, changedDelegates, movedCommittee, notFound, unchanged }) {
-            const out = document.getElementById('output');
-            let html = '<div class="report">';
-            html += `<h4>PDF/Text Allocation Sync Report ${targetCommitteeName ? `— <span class="small">${targetCommitteeName}</span>` : ''}</h4>`;
-            if (changedDelegates.length) {
-                html += `<p><b>${changedDelegates.length}</b> delegate(s) updated:</p><ul class="mono">`;
-                changedDelegates.forEach(x => html += `<li>${escapeHtml(x)}</li>`);
-                html += `</ul>`;
-            }
-            if (movedCommittee.length) {
-                html += `<p><b>${movedCommittee.length}</b> moved to new committee:</p><ul class="mono">`;
-                movedCommittee.forEach(x => html += `<li>${escapeHtml(x)}</li>`);
-                html += `</ul>`;
-            }
-            if (unchanged.length) {
-                html += `<p><b>${unchanged.length}</b> already up-to-date:</p><details><summary>Show list</summary><ul class="mono">`;
-                unchanged.forEach(x => html += `<li>${escapeHtml(x)}</li>`);
-                html += `</ul></details>`;
-            }
-            if (notFound.length) {
-                html += `<p><b>${notFound.length}</b> not found in DB (check spelling or school):</p><ul class="mono">`;
-                notFound.forEach(x => html += `<li>${escapeHtml(x)}</li>`);
-                html += `</ul>`;
-            }
-            html += '</div>';
-            out.innerHTML = html;
-        }
-
-        function parsePdfDelegateList(text) {
-            // Try to detect the committee short code from the pasted text
-            const committeeShort = detectCommitteeShort(text);
-
-            // Flatten line breaks to make regex robust to PDF line wraps
-            let flat = text.replace(/\r\n/g, '\n');
-            // Keep bullets but normalize whitespace
-            flat = flat.replace(/\s+/g, ' ').trim();
-            // Normalize dash variants
-            flat = flat.replace(/[–—]/g, '-');
-
-            const assignments = [];
-            // Primary pattern with numbering like "1. Name (School) - Representing: Country"
-            let re = /(?:\b\d+\.\s*)?([A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+?)\s*\((.+?)\)\s*-\s*Representing:\s*([A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+?)(?=\s+\d+\.|$)/gmi;
-            let m;
-            while ((m = re.exec(flat)) !== null) {
-                assignments.push({ name: m[1].trim(), school: m[2].trim(), country: m[3].trim() });
-            }
-            // Fallback without numbering if nothing found
-            if (assignments.length === 0) {
-                re = /([A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+?)\s*\((.+?)\)\s*-\s*Representing:\s*([A-Za-zÀ-ÖØ-öø-ÿ'’.\- ]+)/gmi;
-                while ((m = re.exec(flat)) !== null) {
-                    assignments.push({ name: m[1].trim(), school: m[2].trim(), country: m[3].trim() });
-                }
-            }
-
-            return { committeeShort, assignments };
-        }
-
-        function detectCommitteeShort(text) {
-            // Try short codes first
-            for (const short of Object.keys(COMMITTEE_MAP)) {
-                const r = new RegExp(`\\b${escapeRegExp(short)}\\b`, 'i');
-                if (r.test(text)) return short;
-            }
-            // Then human-readable aliases
-            for (const longName of Object.keys(COMMITTEE_ALIASES)) {
-                const r = new RegExp(escapeRegExp(longName), 'i');
-                if (r.test(text)) return COMMITTEE_ALIASES[longName];
-            }
-            return null;
-        }
-
-        function escapeRegExp(str) {
-            return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        }
-
-        function escapeHtml(str) {
-            return String(str)
-                .replace(/&/g, '&amp;')
-                .replace(/</g, '&lt;')
-                .replace(/>/g, '&gt;')
-                .replace(/"/g, '&quot;')
-                .replace(/'/g, '&#39;');
-        }
-
-        // *** EDIT DELEGATE INFORMATION (existing) ***
-        function editDelegateInfo() {
-            const enteredPassword = prompt("Please enter the organizer password to edit entry:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
-
-            const targetName = prompt("Enter the Delegate's FULL NAME to find:").trim();
-            if (!targetName) return;
-
-            const targetSchool = prompt(`Enter the School Name for delegate "${targetName}":`).trim();
-            if (!targetSchool) return;
-
-            const normalizedTargetName = toSentenceCase(targetName);
-            const normalizedTargetSchool = toSentenceCase(targetSchool);
-
-            const delegateToEdit = allDelegates.find(d =>
-                toSentenceCase(d.name) === normalizedTargetName &&
-                toSentenceCase(d.school) === normalizedTargetSchool
-            );
-
-            if (!delegateToEdit) {
-                document.getElementById('status').textContent = `❌ Error: Delegate "${normalizedTargetName}" from "${normalizedTargetSchool}" not found.`;
-                return;
-            }
-
-            const key = delegateToEdit.firebaseKey;
-
-            alert(
-                `CURRENT INFORMATION for ${delegateToEdit.name}:\n` +
-                `School: ${delegateToEdit.school}\n` +
-                `Committee: ${delegateToEdit.committee}\n` +
-                `Country: ${delegateToEdit.country}`
-            );
-
-            const newName = prompt("Enter NEW Full Name:", delegateToEdit.name) || delegateToEdit.name;
-            const newSchool = prompt("Enter NEW School Name:", delegateToEdit.school) || delegateToEdit.school;
-            const currentCommitteeShort = Object.keys(COMMITTEE_MAP).find(k => COMMITTEE_MAP[k] === delegateToEdit.committee) || delegateToEdit.committee;
-            const newCommitteeInput = (prompt("Enter NEW Committee SHORT CODE (e.g., SC, WHO, UNEP, HCC):", currentCommitteeShort) || currentCommitteeShort).toUpperCase();
-            let newCountry = prompt("Enter NEW Country/Topic Represented:", delegateToEdit.country) || delegateToEdit.country;
-
-            const processedNewName = toSentenceCase(newName);
-            const processedNewSchool = toSentenceCase(newSchool);
-            let processedNewCountry = formatCountryName(newCountry);
-
-            const newAdvisor1Email = prompt("Enter NEW Advisor 1 Email:", delegateToEdit.advisor1_email) || delegateToEdit.advisor1_email;
-            const newAdvisor1Mobile = prompt("Enter NEW Advisor 1 Mobile:", delegateToEdit.advisor1_mobile) || delegateToEdit.advisor1_mobile;
-            const newAdvisor2Email = prompt("Enter NEW Advisor 2 Email:", delegateToEdit.advisor2_email) || delegateToEdit.advisor2_email;
-            const newAdvisor2Mobile = prompt("Enter NEW Advisor 2 Mobile:", delegateToEdit.advisor2_mobile) || delegateToEdit.advisor2_mobile;
-
-            const newMappedCommittee = COMMITTEE_MAP[newCommitteeInput] || newCommitteeInput;
-
-            const updatedDelegateObject = {
-                name: processedNewName,
-                school: processedNewSchool,
-                committee: newMappedCommittee,
-                country: processedNewCountry,
-                advisor1_email: newAdvisor1Email,
-                advisor1_mobile: newAdvisor1Mobile,
-                advisor2_email: newAdvisor2Email,
-                advisor2_mobile: newAdvisor2Mobile,
-            };
-
-            database.ref('delegates/' + key).update(updatedDelegateObject)
-                .then(() => {
-                    document.getElementById('status').textContent = `✅ Successfully updated delegate ${updatedDelegateObject.name} in the database.`;
-                })
-                .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error updating delegate: ${error.message}`;
-                });
-        }
-
-        // *** EDIT SCHOOL NAME (existing) ***
-        function editSchoolName() {
-            const enteredPassword = prompt("Please enter the organizer password to bulk edit school names:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
-
-            const oldSchoolNameInput = prompt("Enter the CURRENT School Name to change (spelling must be precise, but case doesn't matter):").trim();
-            if (!oldSchoolNameInput) return;
-
-            const newSchoolNameInput = prompt(`Enter the NEW School Name to replace "${oldSchoolNameInput}":`).trim();
-            if (!newSchoolNameInput) return;
-
-            const oldSchoolNameNormalized = toSentenceCase(oldSchoolNameInput);
-            const newSchoolNameNormalized = toSentenceCase(newSchoolNameInput);
-
-            if (oldSchoolNameNormalized === newSchoolNameNormalized) {
-                 if(oldSchoolNameInput !== newSchoolNameInput && oldSchoolNameInput.toLowerCase() === newSchoolNameInput.toLowerCase()) {
-                    // proceed
-                 } else {
-                    alert("The new school name is effectively the same as the old one after normalization. No changes made.");
-                    return;
-                 }
-            }
-
-            document.getElementById('status').textContent = `Searching for delegates from "${oldSchoolNameNormalized}"...`;
-
-            database.ref('delegates').once('value')
-                .then(snapshot => {
-                    const updates = {};
-                    let updateCount = 0;
-                    let foundMatch = false;
-
-                    snapshot.forEach(childSnapshot => {
-                        const delegate = childSnapshot.val();
-                        const firebaseKey = childSnapshot.key;
-                        const currentSchoolNormalized = toSentenceCase(delegate.school);
-
-                        if (currentSchoolNormalized === oldSchoolNameNormalized) {
-                            foundMatch = true;
-                            if (delegate.school !== newSchoolNameNormalized) {
-                                updates[`${firebaseKey}/school`] = newSchoolNameNormalized;
-                                updateCount++;
-                            }
-                        }
-                    });
-
-                    if (foundMatch && updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ School "${oldSchoolNameInput}" is already correctly formatted as "${newSchoolNameNormalized}". No updates needed.`;
-                        return;
-                    }
-                    if (!foundMatch) {
-                         document.getElementById('status').textContent = `❌ Error: No delegates found matching "${oldSchoolNameInput}" (normalized as "${oldSchoolNameNormalized}"). Please check the spelling.`;
-                         return;
-                     }
-
-                    if (!confirm(`Are you sure you want to change the school name from "${oldSchoolNameInput}" to "${newSchoolNameInput}" for ${updateCount} delegates? (This will apply the format "${newSchoolNameNormalized}")`)) {
-                        document.getElementById('status').textContent = `School name change cancelled.`;
-                        return;
-                    }
-
-                    if (updateCount > 0) {
-                        return delegatesRef.update(updates)
-                            .then(() => {
-                                document.getElementById('status').textContent = `✅ Successfully updated ${updateCount} delegate records. School name changed to "${newSchoolNameNormalized}".`;
-                            });
-                    } else {
-                         document.getElementById('status').textContent = `No updates were necessary for school "${oldSchoolNameInput}".`;
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during school name update: ${error.message}`;
-                    console.error("Error updating school names:", error);
-                });
-        }
-
-        // *** EDIT COUNTRY NAME MANUALLY (existing) ***
-        function editCountryName() {
-            const enteredPassword = prompt("Please enter the organizer password to bulk edit country names:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
-
-            const oldCountryNameInput = prompt("Enter the CURRENT Country Name to change (case doesn't matter):").trim();
-            if (!oldCountryNameInput) return;
-
-            const oldCountryNameNormalizedSearch = oldCountryNameInput.toLowerCase();
-
-            const newCountryNameInput = prompt(`Enter the NEW, correctly cased Country Name to replace "${oldCountryNameInput}" (e.g., Egypt, South Korea, USA, UK):`).trim();
-            if (!newCountryNameInput) return;
-
-            const newCountryNameExact = newCountryNameInput;
-
-            if (oldCountryNameInput === newCountryNameExact) {
-                 alert("The new country name is identical to the old one. No changes made.");
-                 return;
-            }
-
-            document.getElementById('status').textContent = `Searching for delegates representing "${oldCountryNameInput}"...`;
-
-            database.ref('delegates').once('value')
-                .then(snapshot => {
-                    const updates = {};
-                    let updateCount = 0;
-                    let foundMatch = false;
-
-                    snapshot.forEach(childSnapshot => {
-                        const delegate = childSnapshot.val();
-                        const firebaseKey = childSnapshot.key;
-
-                        if (delegate.country && delegate.committee !== HCC_COUNTRY_MAPPED_NAME && delegate.country !== HCC_COUNTRY_VALUE) {
-                            if (delegate.country.toLowerCase() === oldCountryNameNormalizedSearch) {
-                                foundMatch = true;
-                                if (delegate.country !== newCountryNameExact) {
-                                    updates[`${firebaseKey}/country`] = newCountryNameExact;
-                                    updateCount++;
-                                }
-                            }
-                        }
-                    });
-
-                    if (foundMatch && updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ Delegates for "${oldCountryNameInput}" already have the name "${newCountryNameExact}". No updates needed.`;
-                        return;
-                    }
-                    if (!foundMatch) {
-                         document.getElementById('status').textContent = `❌ Error: No delegates found representing "${oldCountryNameInput}". Please check the spelling.`;
-                         return;
-                     }
-
-                    if (!confirm(`Are you sure you want to change the country name from "${oldCountryNameInput}" to "${newCountryNameExact}" for ${updateCount} delegates?`)) {
-                        document.getElementById('status').textContent = `Country name change cancelled.`;
-                        return;
-                    }
-
-                    if (updateCount > 0) {
-                        return delegatesRef.update(updates)
-                            .then(() => {
-                                document.getElementById('status').textContent = `✅ Successfully updated ${updateCount} delegate records. Country name changed to "${newCountryNameExact}".`;
-                            });
-                    } else {
-                         document.getElementById('status').textContent = `No updates were necessary for country "${oldCountryNameInput}".`;
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during country name update: ${error.message}`;
-                    console.error("Error updating country names:", error);
-                });
-        }
-        
-        // *** EDIT COMMITTEE NAME (existing) ***
-        function editCommitteeName() {
-            const enteredPassword = prompt("Please enter the organizer password to bulk edit committee names:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
-
-            const oldCommitteeNameInput = prompt("Enter the CURRENT, FULL Committee Name to change (must be exact, e.g., 'Security Council 🔐'):").trim();
-            if (!oldCommitteeNameInput) return;
-
-            const newCommitteeNameInput = prompt(`Enter the NEW Committee Name to replace "${oldCommitteeNameInput}":`).trim();
-            if (!newCommitteeNameInput) return;
-
-            if (oldCommitteeNameInput === newCommitteeNameInput) {
-                 alert("The new committee name is identical to the old one. No changes made.");
-                 return;
-            }
-
-            document.getElementById('status').textContent = `Searching for delegates in "${oldCommitteeNameInput}"...`;
-
-            database.ref('delegates').once('value')
-                .then(snapshot => {
-                    const updates = {};
-                    let updateCount = 0;
-                    let foundMatch = false;
-
-                    snapshot.forEach(childSnapshot => {
-                        const delegate = childSnapshot.val();
-                        const firebaseKey = childSnapshot.key;
-
-                        if (delegate.committee === oldCommitteeNameInput) {
-                            foundMatch = true;
-                            if (delegate.committee !== newCommitteeNameInput) { 
-                                updates[`${firebaseKey}/committee`] = newCommitteeNameInput;
-                                updateCount++;
-                            }
-                        }
-                    });
-
-                    if (foundMatch && updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ Committee "${oldCommitteeNameInput}" is already named "${newCommitteeNameInput}". No updates needed.`;
-                        return;
-                    }
-                    if (!foundMatch) {
-                         document.getElementById('status').textContent = `❌ Error: No delegates found in committee "${oldCommitteeNameInput}". Please check the spelling and emoji.`;
-                         return;
-                     }
-
-                    if (!confirm(`Are you sure you want to change the committee name from "${oldCommitteeNameInput}" to "${newCommitteeNameInput}" for ${updateCount} delegates?`)) {
-                        document.getElementById('status').textContent = `Committee name change cancelled.`;
-                        return;
-                    }
-
-                    if (updateCount > 0) {
-                        return delegatesRef.update(updates)
-                            .then(() => {
-                                document.getElementById('status').textContent = `✅ Successfully updated ${updateCount} delegate records. Committee name changed to "${newCommitteeNameInput}".`;
-                            });
-                    } else {
-                         document.getElementById('status').textContent = `No updates were necessary for committee "${oldCommitteeNameInput}".`;
-                    }
-                })
-                .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during committee name update: ${error.message}`;
-                    console.error("Error updating committee names:", error);
-                });
-        }
-        // *** BULK RENAME DELEGATE NAME (new) ***
-        function bulkRenameDelegate() {
-            const enteredPassword = prompt("Enter organizer password to bulk rename a delegate:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password.");
-                return;
-            }
-
-            const oldName = prompt("Current FULL name to change (case-insensitive):");
-            if (!oldName) return;
-            const school = prompt("School of this delegate (to limit the scope):");
-            if (!school) return;
-            const newName = prompt(`New name for "${oldName}" at "${school}":`);
-            if (!newName) return;
-
-            const oldNameNorm = toSentenceCase(oldName);
-            const schoolNorm = toSentenceCase(school);
-            const newNameNorm = toSentenceCase(newName);
-
-            const updates = {};
-            let count = 0;
-            allDelegates.forEach(d => {
-                if (toSentenceCase(d.name) === oldNameNorm && toSentenceCase(d.school) === schoolNorm) {
-                    updates[`${d.firebaseKey}/name`] = newNameNorm;
-                    count++;
-                }
-            });
-
-            if (count === 0) {
-                document.getElementById('status').textContent = `No records found for "${oldNameNorm}" at "${schoolNorm}".`;
-                return;
-            }
-
-            if (!confirm(`Rename ${count} record(s) to "${newNameNorm}"?`)) {
-                document.getElementById('status').textContent = 'Bulk rename cancelled.';
-                return;
-            }
-
-            delegatesRef.update(updates)
-                .then(() => {
-                    document.getElementById('status').textContent = `✅ Renamed ${count} record(s).`;
-                })
-                .catch(err => {
-                    document.getElementById('status').textContent = `❌ Error during bulk rename: ${err.message}`;
-                });
-        }
-        
-        // *** REMOVE SINGLE DELEGATE BY NAME/SCHOOL (existing) ***
-        function removeSingleDelegate() {
-            const enteredPassword = prompt("Enter admin password to delete single entry:", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Deletion cancelled.");
-                return;
-            }
-
-            const targetName = prompt("Enter the Delegate's FULL NAME to delete:").trim();
-            if (!targetName) return;
-
-            const targetSchool = prompt(`Enter the School Name for delegate "${targetName}":`).trim();
-            if (!targetSchool) return;
-
-            const normalizedTargetName = toSentenceCase(targetName);
-            const normalizedTargetSchool = toSentenceCase(targetSchool);
-
-            const delegateToDelete = allDelegates.find(d =>
-                toSentenceCase(d.name) === normalizedTargetName &&
-                toSentenceCase(d.school) === normalizedTargetSchool
-            );
-
-            if (!delegateToDelete) {
-                document.getElementById('status').textContent = `❌ Error: Delegate "${normalizedTargetName}" from "${normalizedTargetSchool}" not found.`;
-                return;
-            }
-
-            const key = delegateToDelete.firebaseKey;
-
-            if (confirm(`FINAL WARNING: Are you sure you want to permanently delete: \n\nName: ${delegateToDelete.name}\nSchool: ${delegateToDelete.school}\nCommittee: ${delegateToDelete.committee}\nCountry: ${delegateToDelete.country}`)) {
-                database.ref('delegates/' + key).remove()
-                    .then(() => {
-                        document.getElementById('status').textContent = `✅ Successfully deleted delegate ${delegateToDelete.name} from ${delegateToDelete.school}.`;
-                    })
-                    .catch(error => {
-                        document.getElementById('status').textContent = `❌ Error deleting delegate: ${error.message}`;
-                    });
-            }
-        }
-
-        // *** NEW: DELETE ENTIRE SCHOOL ***
-        function deleteSchool() {
-            const enteredPassword = prompt("Enter admin password to delete an ENTIRE school:", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Deletion cancelled.");
-                return;
-            }
-
-            const schoolNameInput = prompt("Enter the School Name to delete (ALL delegates from this school will be removed):").trim();
-            if (!schoolNameInput) return;
-
-            const schoolNameNormalized = toSentenceCase(schoolNameInput);
-
-            // Find all delegates belonging to this school
-            const delegatesToDelete = allDelegates.filter(d => toSentenceCase(d.school) === schoolNameNormalized);
-
-            if (delegatesToDelete.length === 0) {
-                document.getElementById('status').textContent = `❌ Error: No delegates found for school "${schoolNameNormalized}". Check spelling.`;
-                return;
-            }
-
-            const confirmMsg = `WARNING: You are about to delete ${delegatesToDelete.length} delegate(s) from "${schoolNameNormalized}".\n\nThis action cannot be undone.\n\nAre you sure?`;
-            if (!confirm(confirmMsg)) {
-                document.getElementById('status').textContent = "Delete school operation cancelled.";
-                return;
-            }
-
-            // Prepare updates for atomic deletion
-            const updates = {};
-            delegatesToDelete.forEach(d => {
-                updates[d.firebaseKey] = null;
-            });
-
-            delegatesRef.update(updates)
-                .then(() => {
-                    document.getElementById('status').textContent = `✅ Successfully deleted ${delegatesToDelete.length} delegates from "${schoolNameNormalized}".`;
-                })
-                .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error deleting school: ${error.message}`;
-                });
-        }
-
-        function clearAllData() {
-            const enteredPassword = prompt("This is a destructive action. Please enter the admin password to clear all data:", "");
-            if (enteredPassword === CLEAR_DATA_PASSWORD) {
-                if (confirm("FINAL CONFIRMATION: Are you sure you want to permanently delete ALL delegate data?")) {
-                    delegatesRef.remove();
-                }
-            } else if (enteredPassword) {
-                alert("Incorrect password. Data was not cleared.");
-            }
-        }
-
-        // --- DUPLICATE CLEAR FUNCTION (existing) ---
-        function handleClearDuplicates() {
-            const enteredPassword = prompt("Please enter the admin password to clear duplicate entries:", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Duplicate clear was cancelled.");
-                return;
-            }
-
-            if (!confirm("CONFIRMATION: Are you sure you want to scan for and delete duplicate delegate entries?")) {
-                return;
-            }
-
-            document.getElementById('status').textContent = "Scanning for duplicates...";
-
-            delegatesRef.once('value', snapshot => {
-                const data = snapshot.val();
-                if (!data) {
-                    document.getElementById('status').textContent = "No data found to check for duplicates.";
-                    return;
-                }
-
-                const delegateMap = {}; // Key: composite unique string, Value: first Firebase key
-                const duplicatesToDelete = []; // List of Firebase keys to delete
-                let deletedCount = 0;
-
-                for (const firebaseKey in data) {
-                    const delegate = data[firebaseKey];
-                    const uniqueKey = `${toSentenceCase(delegate.name)}::${toSentenceCase(delegate.school)}::${delegate.committee}::${formatCountryName(delegate.country)}`.toLowerCase();
-
-                    if (delegateMap[uniqueKey]) {
-                        duplicatesToDelete.push(firebaseKey);
-                    } else {
-                        delegateMap[uniqueKey] = firebaseKey;
-                    }
-                }
-
-                if (duplicatesToDelete.length === 0) {
-                    document.getElementById('status').textContent = "✅ Scan complete. No duplicate entries were found.";
-                    return;
-                }
-
-                const deletePromises = duplicatesToDelete.map(key => {
-                    return delegatesRef.child(key).remove().then(() => {
-                        deletedCount++;
-                    });
-                });
-
-                Promise.all(deletePromises)
-                    .then(() => {
-                        document.getElementById('status').textContent = `✅ Successfully removed ${deletedCount} duplicate delegate entries from the database.`;
-                    })
-                    .catch(error => {
-                        document.getElementById('status').textContent = `❌ Error clearing duplicates: ${error.message}`;
-                        console.error("Error clearing duplicates:", error);
-                    });
-            });
-        }
-
-        // --- STRUCTURE DELEGATE DATA (existing) ---
-        function structureDelegateData(parsedData) {
-            const delegates = [];
-            const schoolName = toSentenceCase(parsedData["School"] || "N/A");
-
-            const country1NameProcessed = formatCountryName(parsedData["Country 1"] || "N/A");
-            const country2NameProcessed = formatCountryName(parsedData["Country 2"] || "N/A");
-
-            const schoolInfo = {
-                school: schoolName,
-                advisor1_email: parsedData["First Advisor’s personal e-mail"] || "",
-                advisor1_mobile: parsedData["First Advisor’s mobile number"] || "",
-                advisor2_email: parsedData["Second Advisor’s personal e-mail"] || "",
-                advisor2_mobile: parsedData["Second Advisor’s mobile number"] || ""
-            };
-
-            for (const key in parsedData) {
-                let delegateName = parsedData[key];
-                if (delegateName && typeof delegateName === 'string' && key.includes("Country") && !["Country 1", "Country 2"].includes(key)) {
-                    delegateName = toSentenceCase(delegateName);
-
-                    const parts = key.split(" ");
-                    const committeeShort = parts[0];
-                    const countryNum = parts[2];
-                    const mappedCommittee = COMMITTEE_MAP[committeeShort] || committeeShort;
-                    let countryValue = countryNum === "1" ? country1NameProcessed : country2NameProcessed;
-
-                    if (committeeShort === "HCC") {
-                        countryValue = HCC_COUNTRY_VALUE;
-                    }
-
-                    delegates.push({
-                        name: delegateName,
-                        school: schoolInfo.school,
-                        committee: mappedCommittee,
-                        country: countryValue,
-                        advisor1_email: schoolInfo.advisor1_email,
-                        advisor1_mobile: schoolInfo.advisor1_mobile,
-                        advisor2_email: schoolInfo.advisor2_email,
-                        advisor2_mobile: schoolInfo.advisor2_mobile,
-                    });
-                }
-            }
-            return delegates;
-        }
-
-        // --- NORMALIZE HCC COUNTRY (existing refined) ---
-        function normalizeHCCCountry(delegate) {
-            if (!delegate || !delegate.committee) return delegate ? delegate.country : "";
-            const formattedCountry = delegate.country;
-            if (formattedCountry === HCC_COUNTRY_VALUE) {
-                return HCC_COUNTRY_VALUE;
-            }
-            return formattedCountry;
-        }
-
-        // --- DISPLAY FUNCTIONS (existing) ---
-        function displayBySchool() {
-            const grouped = groupBy(allDelegates, 'school');
-            let html = '<h2>🏫 Delegates by School</h2>';
-            html += `<div class="button-group"><button class="btn export" onclick="exportBySchool()">Export this View</button></div>`;
-            const sortedSchools = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
-
-            for (const school of sortedSchools) {
-                const schoolDelegates = grouped[school];
-                if (!schoolDelegates || schoolDelegates.length === 0) continue;
-                const firstDelegate = schoolDelegates[0];
-                let delegateCounter = 1;
-
-                const escapedSchoolName = school.replace(/\\/g, '\\\\')
-                                                .replace(/'/g, "\\'")
-                                                .replace(/\n/g, '\\n')
-                                                .replace(/\r/g, '\\r')
-                                                .replace(/"/g, '&quot;');
+        };
+
+        /**
+         * ==========================================
+         * 5. EXPORTER (PDF & EXCEL)
+         * ==========================================
+         */
+        const Exporter = {
+            excel: (mode) => {
+                // Prepare Data
+                const dataset = DB.data.map(d => ({
+                    "Name": d.name,
+                    "School": d.school,
+                    "Committee": d.committee,
+                    "Country": Utils.normalizeHCC(d),
+                    "Advisor 1": `${d.advisor1_email} ${d.advisor1_mobile}`.trim(),
+                    "Advisor 2": `${d.advisor2_email} ${d.advisor2_mobile}`.trim()
+                }));
                 
-                html += `<h3>
-                            <span>${school} (Delegates: ${schoolDelegates.length})</span>
-                            <button class="btn print" onclick="printSchoolPDF('${escapedSchoolName}')">Print PDF</button>
-                         </h3>`;
-                html += `<div class="advisor-info">`;
-                if (firstDelegate.advisor1_email || firstDelegate.advisor1_mobile) {
-                    html += `<strong>Advisor 1:</strong> ${firstDelegate.advisor1_email || 'N/A'} | ${firstDelegate.advisor1_mobile || 'N/A'}<br>`;
-                }
-                if (firstDelegate.advisor2_email || firstDelegate.advisor2_mobile) {
-                    html += `<strong>Advisor 2:</strong> ${firstDelegate.advisor2_email || 'N/A'} | ${firstDelegate.advisor2_mobile || 'N/A'}<br>`;
-                }
-                if (firstDelegate.advisor3_email || firstDelegate.advisor3_mobile) {
-                    html += `<strong>Advisor 3:</strong> ${firstDelegate.advisor3_email || 'N/A'} | ${firstDelegate.advisor3_mobile || 'N/A'}`;
-                }
-                html += `</div><ul>`;
-                schoolDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    const displayCountry = normalizeHCCCountry(d);
-                    html += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> - Committee: ${d.committee} (${displayCountry})</li>`;
-                });
-                html += '</ul>';
-            }
-            document.getElementById('output').innerHTML = html;
-        }
+                // Sort
+                if(mode === 'school') dataset.sort((a,b) => a.School.localeCompare(b.School) || a.Name.localeCompare(b.Name));
+                else if(mode === 'committee') dataset.sort((a,b) => a.Committee.localeCompare(b.Committee) || a.Name.localeCompare(b.Name));
+                else dataset.sort((a,b) => a.Country.localeCompare(b.Country) || a.Name.localeCompare(b.Name));
 
-        function displayByCommittee() {
-            const grouped = groupBy(allDelegates, 'committee');
-            let html = '<h2>📋 Delegates by Committee</h2>';
-            html += `<div class="button-group"><button class="btn export" onclick="exportByCommittee()">Export this View</button></div>`;
-            const sortedCommittees = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
-
-            for (const committee of sortedCommittees) {
-                const committeeDelegates = grouped[committee];
-                if (!committeeDelegates || committeeDelegates.length === 0) continue;
-                let delegateCounter = 1;
-
-                const escapedCommitteeName = committee.replace(/\\/g, '\\\\')
-                                                    .replace(/'/g, "\\'")
-                                                    .replace(/\n/g, '\\n')
-                                                    .replace(/\r/g, '\\r')
-                                                    .replace(/"/g, '&quot;');
-
-                html += `<h3>
-                            <span>${committee} (Delegates: ${committeeDelegates.length})</span>
-                            <button class="btn print" onclick="printCommitteePDF('${escapedCommitteeName}')">Print PDF</button>
-                         </h3>`;
-                html += `<ul>`;
-                committeeDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    const displayCountry = normalizeHCCCountry(d);
-                    html += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Representing: ${displayCountry}</li>`;
-                });
-                html += '</ul>';
-            }
-            document.getElementById('output').innerHTML = html;
-        }
-
-        function displayByCountry() {
-            const normalizedDelegates = allDelegates.map(d => ({
-                ...d,
-                country: normalizeHCCCountry(d)
-            }));
-
-            const grouped = groupBy(normalizedDelegates, 'country');
-            let html = '<h2>🌍 Delegates by Country</h2>';
-            html += `<div class="button-group"><button class="btn export" onclick="exportByCountry()">Export this View</button></div>`;
-            const sortedCountries = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
-
-            for (const country of sortedCountries) {
-                const countryDelegates = grouped[country];
-                if (!countryDelegates || countryDelegates.length === 0) continue;
-                let delegateCounter = 1;
-
-                const escapedCountryName = country.replace(/\\/g, '\\\\')
-                                                  .replace(/'/g, "\\'")
-                                                  .replace(/\n/g, '\\n')
-                                                  .replace(/\r/g, '\\r')
-                                                  .replace(/"/g, '&quot;');
+                // Create Workbook
+                const ws = XLSX.utils.json_to_sheet(dataset);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Delegates");
                 
-                html += `<h3>
-                            <span>🇺🇳 ${country} (Delegates: ${countryDelegates.length})</span>
-                            <button class="btn print" onclick="printCountryPDF('${escapedCountryName}')">Print PDF</button>
-                         </h3>`;
-                html += `<ul>`;
-                countryDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    html += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Committee: ${d.committee}</li>`;
+                // Save File
+                XLSX.writeFile(wb, `PyleaMUN_Export_${mode}.xlsx`);
+            },
+
+            pdf: (mode) => {
+                const element = document.getElementById('output');
+                if(!element || element.innerHTML === "") return alert("Please click a View button first.");
+                
+                const opt = {
+                    margin:       10,
+                    filename:     `PyleaMUN_Report_${mode}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2 },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                
+                // Use html2pdf library
+                html2pdf().set(opt).from(element).save();
+            }
+        };
+
+        /**
+         * ==========================================
+         * 6. PARSERS
+         * ==========================================
+         */
+        const Parsers = {
+            parseFormSubmit: (text) => {
+                let clean = text.replace(/’s_/g, "’s ").replace(/_/g, " ");
+                if (clean.includes("Here's what they had to say:")) clean = clean.split("Here's what they had to say:")[1];
+                if (clean.includes("Submitted at")) clean = clean.split("Submitted at")[0];
+                clean = clean.trim();
+                const regexMap = {
+                    School: /School\s+([\s\S]+?)(?=First Advisor|$)/i,
+                    Adv1Email: /First Advisor’s personal e-mail\s+([\s\S]+?)(?=First Advisor’s mobile|$)/i,
+                    Adv1Mob: /First Advisor’s mobile number\s+([\s\S]+?)(?=Second|$)/i,
+                    Adv2Email: /Second Advisor’s personal e-mail\s+([\s\S]+?)(?=Second Advisor’s mobile|$)/i,
+                    Adv2Mob: /Second Advisor’s mobile number\s+([\s\S]+?)(?=Number of Delegates|$)/i,
+                    C1: /Country 1\s+([\s\S]+?)(?=Country 2|$)/i,
+                    C2: /Country 2\s+([\s\S]+?)(?=UNEP|$)/i
+                };
+                const result = {}; for (const [key, rx] of Object.entries(regexMap)) { const m = clean.match(rx); if(m) result[key] = m[1].trim(); }
+                if(!result.School) return null;
+                result.allocations = {};
+                const comms = ["UNEP", "SC", "ECOSOC", "NATO", "WHO", "HRC", "UNESCO", "UN Women", "HCC"];
+                comms.forEach(c => {
+                    const rx1 = new RegExp(`${c} Country 1\\s+([\\s\\S]+?)(?=${c} Country 2|$)`, 'i');
+                    const rx2 = new RegExp(`${c} Country 2\\s+([\\s\\S]+?)(?=${comms.find(next=>text.indexOf(next)>text.indexOf(c))}|Special Comments|$)`, 'i');
+                    const m1 = clean.match(rx1); const m2 = clean.match(rx2);
+                    if(m1 && m1[1].trim()) result.allocations[`${c} 1`] = m1[1].trim();
+                    if(m2 && m2[1].trim()) result.allocations[`${c} 2`] = m2[1].trim();
                 });
-                html += '</ul>';
-            }
-            document.getElementById('output').innerHTML = html;
-        }
-
-        // --- EXPORT FUNCTIONS (existing) ---
-        function exportBySchool() {
-            const normalizedDelegates = allDelegates.map(d => ({ ...d, country: normalizeHCCCountry(d) }));
-            const grouped = groupBy(normalizedDelegates, 'school');
-            let csvContent = "School,Advisor 1 Email,Advisor 1 Mobile,Advisor 2 Email,Advisor 2 Mobile,Delegate Name,Committee,Country\n";
-            const sortedSchools = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
-            for (const school of sortedSchools) {
-                grouped[school].sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    const row = [d.school, d.advisor1_email, d.advisor1_mobile, d.advisor2_email, d.advisor2_mobile, d.name, cleanText(d.committee), d.country];
-                    csvContent += row.map(val => `"${(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
-                });
-            }
-            downloadCsv(csvContent, "delegates_by_school.csv");
-        }
-
-        function exportByCommittee() {
-            const normalizedDelegates = allDelegates.map(d => ({ ...d, country: normalizeHCCCountry(d) }));
-            const grouped = groupBy(normalizedDelegates, 'committee');
-            let csvContent = "Committee,Delegate Name,School,Country\n";
-            const sortedCommittees = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
-            for (const committee of sortedCommittees) {
-                grouped[committee].sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    const row = [cleanText(d.committee), d.name, d.school, d.country];
-                    csvContent += row.map(val => `"${(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
-                });
-            }
-            downloadCsv(csvContent, "delegates_by_committee.csv");
-        }
-
-        function exportByCountry() {
-            const normalizedDelegates = allDelegates.map(d => ({ ...d, country: normalizeHCCCountry(d) }));
-            const grouped = groupBy(normalizedDelegates, 'country');
-            let csvContent = "Country,Delegate Name,School,Committee\n";
-            const sortedCountries = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
-            for (const country of sortedCountries) {
-                grouped[country].sort((a, b) => a.name.localeCompare(b.name)).forEach(d => { 
-                    const row = [cleanText(d.country), d.name, d.school, cleanText(d.committee)];
-                    csvContent += row.map(val => `"${(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
-                });
-            }
-            downloadCsv(csvContent, "delegates_by_country.csv");
-        }
-
-        function downloadCsv(csvContent, filename) {
-            const encodedUri = encodeURI("data:text/csv;charset=utf-8," + csvContent);
-            const link = document.createElement("a");
-            link.setAttribute("href", encodedUri);
-            link.setAttribute("download", filename);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        }
-
-        // --- HELPERS (existing + a couple new tiny ones) ---
-        function cleanText(str) {
-            if (!str) return "";
-            return str.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim();
-        }
-
-        function toSentenceCase(str) {
-            if (!str) return "";
-            const trimmedStr = str.trim();
-            let sentenceCased = trimmedStr.toLowerCase().replace(/\b\w/g, char => char.toUpperCase());
-            return sentenceCased.replace(/\bOf\b/gi, 'of');
-        }
-
-        function formatCountryName(country) {
-            if (!country) return "N/A";
-            const trimmedCountry = country.trim();
-            const upperCaseCountry = trimmedCountry.toUpperCase();
-            if (COUNTRY_ACRONYMS.includes(upperCaseCountry)) {
-                return upperCaseCountry;
-            } else {
-                return toSentenceCase(trimmedCountry);
-            }
-        }
-
-        function parseRawData(rawText) {
-            let cleanedText = rawText.replace(/’s_/g, "’s ").replace(/_/g, " ");
-            if (cleanedText.includes("Here's what they had to say:")) { cleanedText = cleanedText.split("Here's what they had to say:")[1]; }
-            if (cleanedText.includes("Submitted at")) { cleanedText = cleanedText.split("Submitted at")[0]; }
-            cleanedText = cleanedText.trim();
-            const FORM_FIELDS = ["School", "First Advisor’s personal e-mail", "First Advisor’s mobile number", "Second Advisor’s personal e-mail", "Second Advisor’s mobile number", "Number of Delegates", "Country 1", "Country 2", "UNEP Country 1", "UNEP Country 2", "SC Country 1", "SC Country 2", "ECOSOC Country 1", "ECOSOC Country 2", "NATO Country 1", "NATO Country 2", "WHO Country 1", "WHO Country 2", "HRC Country 1", "HRC Country 2", "UNESCO Country 1", "UNESCO Country 2", "UN Women Country 1", "UN Women Country 2", "HCC Country 1", "HCC Country 2", "Special Comments"];
-            const foundFields = [];
-            FORM_FIELDS.forEach(field => {
-                let pos = cleanedText.indexOf(field);
-                if (pos !== -1) { foundFields.push({ field, pos }); }
-            });
-            if (foundFields.length === 0) return null;
-            foundFields.sort((a, b) => a.pos - b.pos);
-            const parsedData = {};
-            for (let i = 0; i < foundFields.length; i++) {
-                const currentField = foundFields[i];
-                const nextField = foundFields[i + 1];
-                const startOfValue = currentField.pos + currentField.field.length;
-                const endOfValue = nextField ? nextField.pos : cleanedText.length;
-                const value = cleanedText.substring(startOfValue, endOfValue).trim();
-                parsedData[currentField.field] = value;
-            }
-            return parsedData;
-        }
-
-        function groupBy(array, key) {
-            return array.reduce((result, currentValue) => {
-                (result[currentValue[key]] = result[currentValue[key]] || []).push(currentValue);
                 return result;
-            }, {});
-        }
-
-        // --- PRINTING FUNCTIONS (existing) ---
-        function generatePrintHTML(title, subTitle, listItemsHtml, includeAdvisorInfo = false, firstDelegate = null) {
-             let advisorHtml = '';
-             if (includeAdvisorInfo && firstDelegate) {
-                 advisorHtml = `<div class="advisor-info">`;
-                 if (firstDelegate.advisor1_email || firstDelegate.advisor1_mobile) {
-                     advisorHtml += `<strong>Advisor 1:</strong> ${firstDelegate.advisor1_email || 'N/A'} | ${firstDelegate.advisor1_mobile || 'N/A'}<br>`;
-                 }
-                 if (firstDelegate.advisor2_email || firstDelegate.advisor2_mobile) {
-                 advisorHtml += `<strong>Advisor 2:</strong> ${firstDelegate.advisor2_email || 'N/A'} | ${firstDelegate.advisor2_mobile || 'N/A'}<br>`;
-             }
-             if (firstDelegate.advisor3_email || firstDelegate.advisor3_mobile) {
-                 advisorHtml += `<strong>Advisor 3:</strong> ${firstDelegate.advisor3_email || 'N/A'} | ${firstDelegate.advisor3_mobile || 'N/A'}`;
-             }
-             advisorHtml += `</div>`;
-             }
-
-             return `
-                <html>
-                <head>
-                    <title>PyleaMUN Delegates - ${subTitle.replace(/:/g, ' -')}</title>
-                    <style>
-                        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 20mm; }
-                        .print-logo { width: 100px; height: auto; display: block; margin: 0 auto 20px auto; }
-                        h1 { text-align: center; color: #005b63; margin-bottom: 5px; font-size: 1.4em;}
-                        h2 { text-align: center; color: #00796b; margin-top: 0; margin-bottom: 20px; font-size: 1.1em; }
-                        .advisor-info { border: 1px solid #ccc; background-color: #f0f8f7; border-radius: 8px; padding: 10px; margin: 15px 0; font-size: 0.9em; }
-                        ul { list-style-type: none; padding-left: 0; }
-                        li { padding: 4px 0; border-bottom: 1px dotted #eee; font-size: 0.95em; }
-                        li strong { margin-right: 5px; }
-                        li b { color: #333; }
-                        @page { size: A4; margin: 20mm; }
-                        @media print {
-                            body { margin: 0; }
-                            .advisor-info { background-color: #f0f8f7 !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-                        }
-                    </style>
-                </head>
-                <body>
-                    <img src="https://pyleamun.github.io/interview-guide/pyleaMUNfinallogo_transparent.png" alt="PyleaMUN Logo" class="print-logo">
-                    <h1>${title}</h1>
-                    <h2>${subTitle}</h2>
-                    ${advisorHtml}
-                    <ul>
-                        ${listItemsHtml}
-                    </ul>
-                </body>
-                </html>`;
-        }
-
-        function printSchoolPDF(schoolName) {
-            const schoolDelegates = allDelegates.filter(d => d.school === schoolName);
-            if (schoolDelegates.length === 0) {
-                alert("Could not find delegates for printing.");
-                return;
-            }
-
-            const firstDelegate = schoolDelegates[0];
-            let delegateCounter = 1;
-            let listItemsHtml = '';
-
-            schoolDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                const displayCountry = normalizeHCCCountry(d);
-                listItemsHtml += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> - Committee: ${cleanText(d.committee)} (${displayCountry})</li>`;
-            });
-
-            const printHtml = generatePrintHTML(
-                "PyleaMUN Delegate List",
-                schoolName,
-                listItemsHtml,
-                true,
-                firstDelegate
-            );
-
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printHtml);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => { printWindow.print(); }, 500);
-        }
-
-        function printCommitteePDF(committeeName) {
-            const committeeDelegates = allDelegates.filter(d => d.committee === committeeName);
-            if (committeeDelegates.length === 0) {
-                alert("Could not find delegates for printing.");
-                return;
-            }
-
-            let delegateCounter = 1;
-            let listItemsHtml = '';
-
-            committeeDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                const displayCountry = normalizeHCCCountry(d);
-                listItemsHtml += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Representing: ${displayCountry}</li>`;
-            });
-
-            const printHtml = generatePrintHTML(
-                "PyleaMUN Delegate List",
-                committeeName,
-                listItemsHtml,
-                false
-            );
-
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printHtml);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => { printWindow.print(); }, 500);
-        }
-
-        function printCountryPDF(countryName) {
-            const countryDelegates = allDelegates.filter(d => normalizeHCCCountry(d) === countryName);
-
-            if (countryDelegates.length === 0) {
-                alert("Could not find delegates for printing.");
-                return;
-            }
-
-            let delegateCounter = 1;
-            let listItemsHtml = '';
-
-            countryDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                listItemsHtml += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Committee: ${cleanText(d.committee)}</li>`;
-            });
-
-            const printHtml = generatePrintHTML(
-                "PyleaMUN Delegate List",
-                `Country: ${countryName}`,
-                listItemsHtml,
-                false
-            );
-
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(printHtml);
-            printWindow.document.close();
-            printWindow.focus();
-            setTimeout(() => { printWindow.print(); }, 500);
-        }
-
-        // *** FIX ALL EXISTING COUNTRY CASES (existing) ***
-        function fixAllCountryCases() {
-            const enteredPassword = prompt("Enter ADMIN password to normalize all country names in the database (Sentence Case, except USA/UK):", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Cleanup cancelled.");
-                return;
-            }
-            if (!confirm("Are you sure you want to scan and update ALL country names (except HCC) to Sentence Case (unless they are USA or UK)? This is a one-time operation.")) {
-                document.getElementById('status').textContent = `Country name cleanup cancelled.`;
-                return;
-            }
-
-            document.getElementById('status').textContent = `Scanning all country names for normalization...`;
-
-            database.ref('delegates').once('value')
-               .then(snapshot => {
-                    const updates = {};
-                    let updateCount = 0;
-                    let processedCount = 0;
-
-                    snapshot.forEach(childSnapshot => {
-                        processedCount++;
-                        const delegate = childSnapshot.val();
-                        const firebaseKey = childSnapshot.key;
-
-                        if (!delegate.country || delegate.committee === HCC_COUNTRY_MAPPED_NAME || delegate.country === HCC_COUNTRY_VALUE) {
-                            return;
-                        }
-
-                        const correctCountryCase = formatCountryName(delegate.country);
-
-                        if (delegate.country !== correctCountryCase) {
-                            updates[`${firebaseKey}/country`] = correctCountryCase;
-                            updateCount++;
-                        }
+            },
+            structureData: (parsed) => {
+                const out = []; const school = Utils.toSentenceCase(parsed.School);
+                const c1 = Utils.formatCountry(parsed.C1); const c2 = Utils.formatCountry(parsed.C2);
+                for(const [key, name] of Object.entries(parsed.allocations)) {
+                    const [commCode, num] = key.split(" ");
+                    let country = (num === "1") ? c1 : c2;
+                    let commFull = Config.committees.map[commCode] || commCode;
+                    if(commCode === "HCC") country = Config.specialValues.hccPlaceholder;
+                    if(commCode === "UN" || commCode === "UN Women") commFull = Config.committees.map["UN Women"];
+                    out.push({
+                        name: Utils.toSentenceCase(name), committee: commFull, country: country, school: school,
+                        advisor1_email: parsed.Adv1Email||"", advisor1_mobile: parsed.Adv1Mob||"", advisor2_email: parsed.Adv2Email||"", advisor2_mobile: parsed.Adv2Mob||""
                     });
+                }
+                return out;
+            },
+            parsePdfText: (text) => {
+                let flat = text.replace(/\r\n/g, '\n').replace(/\s+/g, ' ').replace(/[–—]/g, '-').trim();
+                let detectedComm = null;
+                for(const [short, full] of Object.entries(Config.committees.map)) { if(flat.includes(short) || flat.includes(full)) { detectedComm = short; break; } }
+                const assignments = []; const regex = /([A-Za-zÀ-ÿ'’.\- ]+?)\s*\((.+?)\)\s*-\s*Representing:\s*([A-Za-zÀ-ÿ'’.\- ]+)/gmi;
+                let m; while ((m = regex.exec(flat)) !== null) { assignments.push({ name: m[1].trim(), school: m[2].trim(), country: m[3].trim() }); }
+                return { committeeShort: detectedComm, assignments };
+            }
+        };
 
-                    if (updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ All ${processedCount} relevant country names are already correctly formatted. No updates needed.`;
-                        return;
-                    }
-
-                    return delegatesRef.update(updates)
-                        .then(() => {
-                            document.getElementById('status').textContent = `✅ Successfully normalized ${updateCount} out of ${processedCount} relevant country names in the database.`;
-                        });
-               })
-               .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during country name cleanup: ${error.message}`;
-                    console.error("Error fixing country names:", error);
-               });
-        }
-
-        // --- START THE APP ---
-        checkPassword();
+        // --- BOOT ---
+        window.addEventListener('DOMContentLoaded', () => { Utils.requireAuth('organizer', App.init); });
     </script>
 </body>
 </html>
