@@ -44,17 +44,17 @@
             <div class="address"><strong>4 Isminis Str.</strong><br>Pylaia, Thessaloniki - 55535</div>
             <div class="logo-container"><img src="https://pyleamun.github.io/interview-guide/pyleaMUNfinallogo_transparent.png" alt="PyleaMUN Logo" class="logo"></div>
             <div class="contact">
-                <div>📞 +30 2310329199</div>
-                <div>📧 <a href="mailto:pyleamun@gmail.com">pyleamun@gmail.com</a></div>
-                <div>🌐 <a href="https://pyleamun.github.io/pyleamun2026/" target="_blank">pyleamun.github.io/pyleamun2026</a></div>
+                <div>+30 2310329199</div>
+                <div><a href="mailto:pyleamun@gmail.com">pyleamun@gmail.com</a></div>
+                <div><a href="https://pyleamun.github.io/pyleamun2026/" target="_blank">pyleamun.github.io/pyleamun2026</a></div>
             </div>
         </div>
         <main>
-            <h1>🏛️ PyleaMUN Delegations Organizer</h1>
+            <h1>PyleaMUN Delegations Organizer</h1>
             <div class="container">
                 <h2>Paste Form Submission or PDF Text Below</h2>
                 <textarea id="rawDataInput" placeholder="Paste the raw text from Formsubmit OR paste the text you copy from a 'PyleaMUN Delegate List' PDF (Ctrl/Cmd+A → Ctrl/Cmd+C) ..."></textarea>
-                <div class="hint">Tip: To apply country re-allocations from a committee PDF (e.g., “PyleaMUN Delegate List – NATO 🛡️”), paste its text above and click <em>Apply PDF/Text Allocations</em>.</div>
+                <div class="hint">Tip: To apply country re-allocations from a committee PDF (e.g., “PyleaMUN Delegate List – NATO ”), paste its text above and click <em>Apply PDF/Text Allocations</em>.</div>
                 <div class="button-group">
                     <button id="processBtn" class="btn">Process Data</button>
                     <button id="addSingleBtn" class="btn secondary">Add Single Delegate</button>
@@ -89,7 +89,7 @@
         window.addEventListener('error', function (ev) {
             try {
                 document.getElementById('app-container').classList.remove('hidden');
-                document.getElementById('status').textContent = '❌ Error: ' + (ev.message || 'Unknown script error');
+                document.getElementById('status').textContent = ' Error: ' + (ev.message || 'Unknown script error');
             } catch (_) {}
         });
 
@@ -106,16 +106,16 @@
 
         // *** COMMITTEE MAPPING - CENTRALIZED ***
         const COMMITTEE_MAP = {
-            "UNEP": "UN Environment Programme 🌱",
-            "SC": "Security Council 🔐",
-            "ECOSOC": "Economic & Social Council 💰",
-            "NATO": "NATO 🛡️",
-            "WHO": "World Health Organisation 🏥",
-            "HRC": "Human Rights Council 🤝",
-            "UNESCO": "UNESCO 📚",
-            "UN Women": "UN Women 👩⚖️",
-            "HCC": "Historical Crisis Committee ⏳",
-            "UN": "UN Women 👩⚖️"
+            "UNEP": "UN Environment Programme",
+            "SC": "Security Council",
+            "ECOSOC": "Economic & Social Council",
+            "NATO": "NATO",
+            "WHO": "World Health Organisation",
+            "HRC": "Human Rights Council",
+            "UNESCO": "UNESCO",
+            "UN Women": "UN Women",
+            "HCC": "Historical Crisis Committee",
+            "UN": "UN Women"
         };
 
         // Human‐readable committee names → short codes (for PDF headings)
@@ -152,18 +152,32 @@
         function initializeApp() {
             document.getElementById('app-container').classList.remove('hidden');
             if (!delegatesRef) {
-                document.getElementById('status').textContent = '❌ Firebase not initialized. Check config or network.';
+                document.getElementById('status').textContent = ' Firebase not initialized. Check config or network.';
                 return;
             }
             delegatesRef.on('value', snapshot => {
                 const data = snapshot.val();
                 allDelegates = [];
                 if (data) {
+                    const committeeUpdates = {};
                     for (const key in data) {
+                        const d = data[key] || {};
+                        const normalizedCommittee = normalizeCommitteeName(d.committee);
+
                         allDelegates.push({
-                            ...data[key],
+                            ...d,
+                            committee: normalizedCommittee,
                             firebaseKey: key
                         });
+
+                        // Auto-normalize committee names in the DB (removes legacy emoji values and merges UN Women)
+                        if (delegatesRef && normalizedCommittee && d.committee !== normalizedCommittee) {
+                            committeeUpdates[`${key}/committee`] = normalizedCommittee;
+                        }
+                    }
+
+                    if (delegatesRef && Object.keys(committeeUpdates).length) {
+                        delegatesRef.update(committeeUpdates).catch(err => console.error('Committee normalization update failed:', err));
                     }
                 }
                 updateUI();
@@ -195,7 +209,7 @@
         function handleProcessData() {
             const rawDataInput = document.getElementById('rawDataInput');
             if (!rawDataInput.value.trim()) {
-                document.getElementById('status').textContent = "⚠️ Please paste data into the text box.";
+                document.getElementById('status').textContent = " Please paste data into the text box.";
                 return;
             }
             const parsedData = parseRawData(rawDataInput.value);
@@ -207,18 +221,18 @@
                         delegatesRef.push(delegate).then(() => addedCount++)
                     );
                     Promise.all(promises).then(() => {
-                         document.getElementById('status').textContent = `✅ Added ${addedCount} delegates for "${toSentenceCase(parsedData.School || 'Unknown School')}" to the database.`;
+                         document.getElementById('status').textContent = ` Added ${addedCount} delegates for "${toSentenceCase(parsedData.School || 'Unknown School')}" to the database.`;
                          rawDataInput.value = '';
                          document.getElementById('output').innerHTML = '';
                     }).catch(error => {
-                         document.getElementById('status').textContent = `❌ Error saving delegates: ${error.message}`;
+                         document.getElementById('status').textContent = ` Error saving delegates: ${error.message}`;
                     });
                 } else {
-                     document.getElementById('status').textContent = `⚠️ No delegate data found in the input.`;
+                     document.getElementById('status').textContent = ` No delegate data found in the input.`;
                 }
 
             } else {
-                document.getElementById('status').textContent = "❌ Error: Could not parse the data. Please check the format.";
+                document.getElementById('status').textContent = " Error: Could not parse the data. Please check the format.";
             }
         }
 
@@ -248,7 +262,7 @@
             const advisor2_email = prompt("Enter Advisor 2 Email (optional):") || 'N/A';
             const advisor2_mobile = prompt("Enter Advisor 2 Mobile (optional):") || 'N/A';
 
-            const mappedCommittee = COMMITTEE_MAP[committeeShort] || committeeShort;
+            const mappedCommittee = normalizeCommitteeName(COMMITTEE_MAP[committeeShort] || committeeShort);
 
             const delegateObject = {
                 name: processedName,
@@ -263,10 +277,10 @@
 
             delegatesRef.push(delegateObject)
                 .then(() => {
-                    document.getElementById('status').textContent = `✅ Successfully added delegate ${processedName} from ${processedSchool}.`;
+                    document.getElementById('status').textContent = ` Successfully added delegate ${processedName} from ${processedSchool}.`;
                 })
                 .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error adding delegate: ${error.message}`;
+                    document.getElementById('status').textContent = ` Error adding delegate: ${error.message}`;
                 });
         }
 
@@ -276,17 +290,17 @@
             
             const raw = document.getElementById('rawDataInput').value;
             if (!raw.trim()) {
-                document.getElementById('status').textContent = "⚠️ Paste the PDF or text content above, then try again.";
+                document.getElementById('status').textContent = " Paste the PDF or text content above, then try again.";
                 return;
             }
 
             const { committeeShort, assignments } = parsePdfDelegateList(raw);
             if (!assignments || assignments.length === 0) {
-                document.getElementById('status').textContent = "❌ Couldn't detect any 'Name (School) - Representing: Country' lines in the pasted text.";
+                document.getElementById('status').textContent = " Couldn't detect any 'Name (School) - Representing: Country' lines in the pasted text.";
                 return;
             }
 
-            const targetCommitteeName = committeeShort ? (COMMITTEE_MAP[committeeShort] || committeeShort) : null;
+            const targetCommitteeName = committeeShort ? normalizeCommitteeName(COMMITTEE_MAP[committeeShort] || committeeShort) : null;
 
             // Build index of existing delegates by Name+School (array in case of duplicates)
             const index = {};
@@ -342,7 +356,7 @@
             });
 
             if (Object.keys(updates).length === 0) {
-                document.getElementById('status').textContent = `ℹ️ No changes were necessary. (${assignments.length} parsed, all already up to date.)`;
+                document.getElementById('status').textContent = ` No changes were necessary. (${assignments.length} parsed, all already up to date.)`;
                 renderAllocationReport({ committeeShort, targetCommitteeName, changedDelegates, movedCommittee, notFound, unchanged });
                 return;
             }
@@ -355,11 +369,11 @@
 
             delegatesRef.update(updates)
                 .then(() => {
-                    document.getElementById('status').textContent = `✅ Applied ${Object.keys(updates).length} field update(s) for ${new Set(changedDelegates.map(x => x.split(' (')[0])).size} delegate(s).`;
+                    document.getElementById('status').textContent = ` Applied ${Object.keys(updates).length} field update(s) for ${new Set(changedDelegates.map(x => x.split(' (')[0])).size} delegate(s).`;
                     renderAllocationReport({ committeeShort, targetCommitteeName, changedDelegates, movedCommittee, notFound, unchanged });
                 })
                 .catch(err => {
-                    document.getElementById('status').textContent = `❌ Error applying updates: ${err.message}`;
+                    document.getElementById('status').textContent = ` Error applying updates: ${err.message}`;
                     console.error(err);
                 });
         }
@@ -467,7 +481,7 @@
             );
 
             if (!delegateToEdit) {
-                document.getElementById('status').textContent = `❌ Error: Delegate "${normalizedTargetName}" from "${normalizedTargetSchool}" not found.`;
+                document.getElementById('status').textContent = ` Error: Delegate "${normalizedTargetName}" from "${normalizedTargetSchool}" not found.`;
                 return;
             }
 
@@ -495,7 +509,7 @@
             const newAdvisor2Email = prompt("Enter NEW Advisor 2 Email:", delegateToEdit.advisor2_email) || delegateToEdit.advisor2_email;
             const newAdvisor2Mobile = prompt("Enter NEW Advisor 2 Mobile:", delegateToEdit.advisor2_mobile) || delegateToEdit.advisor2_mobile;
 
-            const newMappedCommittee = COMMITTEE_MAP[newCommitteeInput] || newCommitteeInput;
+            const newMappedCommittee = normalizeCommitteeName(COMMITTEE_MAP[newCommitteeInput] || newCommitteeInput);
 
             const updatedDelegateObject = {
                 name: processedNewName,
@@ -510,10 +524,10 @@
 
             database.ref('delegates/' + key).update(updatedDelegateObject)
                 .then(() => {
-                    document.getElementById('status').textContent = `✅ Successfully updated delegate ${updatedDelegateObject.name} in the database.`;
+                    document.getElementById('status').textContent = ` Successfully updated delegate ${updatedDelegateObject.name} in the database.`;
                 })
                 .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error updating delegate: ${error.message}`;
+                    document.getElementById('status').textContent = ` Error updating delegate: ${error.message}`;
                 });
         }
 
@@ -562,11 +576,11 @@
                     });
 
                     if (foundMatch && updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ School "${oldSchoolNameInput}" is already correctly formatted as "${newSchoolNameNormalized}". No updates needed.`;
+                        document.getElementById('status').textContent = ` School "${oldSchoolNameInput}" is already correctly formatted as "${newSchoolNameNormalized}". No updates needed.`;
                         return;
                     }
                     if (!foundMatch) {
-                         document.getElementById('status').textContent = `❌ Error: No delegates found matching "${oldSchoolNameInput}" (normalized as "${oldSchoolNameNormalized}"). Please check the spelling.`;
+                         document.getElementById('status').textContent = ` Error: No delegates found matching "${oldSchoolNameInput}" (normalized as "${oldSchoolNameNormalized}"). Please check the spelling.`;
                          return;
                      }
 
@@ -578,14 +592,14 @@
                     if (updateCount > 0) {
                         return delegatesRef.update(updates)
                             .then(() => {
-                                document.getElementById('status').textContent = `✅ Successfully updated ${updateCount} delegate records. School name changed to "${newSchoolNameNormalized}".`;
+                                document.getElementById('status').textContent = ` Successfully updated ${updateCount} delegate records. School name changed to "${newSchoolNameNormalized}".`;
                             });
                     } else {
                          document.getElementById('status').textContent = `No updates were necessary for school "${oldSchoolNameInput}".`;
                     }
                 })
                 .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during school name update: ${error.message}`;
+                    document.getElementById('status').textContent = ` Error during school name update: ${error.message}`;
                     console.error("Error updating school names:", error);
                 });
         }
@@ -633,11 +647,11 @@
                     });
 
                     if (foundMatch && updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ Delegates for "${oldCountryNameInput}" already have the name "${newCountryNameExact}". No updates needed.`;
+                        document.getElementById('status').textContent = ` Delegates for "${oldCountryNameInput}" already have the name "${newCountryNameExact}". No updates needed.`;
                         return;
                     }
                     if (!foundMatch) {
-                         document.getElementById('status').textContent = `❌ Error: No delegates found representing "${oldCountryNameInput}". Please check the spelling.`;
+                         document.getElementById('status').textContent = ` Error: No delegates found representing "${oldCountryNameInput}". Please check the spelling.`;
                          return;
                      }
 
@@ -649,14 +663,14 @@
                     if (updateCount > 0) {
                         return delegatesRef.update(updates)
                             .then(() => {
-                                document.getElementById('status').textContent = `✅ Successfully updated ${updateCount} delegate records. Country name changed to "${newCountryNameExact}".`;
+                                document.getElementById('status').textContent = ` Successfully updated ${updateCount} delegate records. Country name changed to "${newCountryNameExact}".`;
                             });
                     } else {
                          document.getElementById('status').textContent = `No updates were necessary for country "${oldCountryNameInput}".`;
                     }
                 })
                 .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during country name update: ${error.message}`;
+                    document.getElementById('status').textContent = ` Error during country name update: ${error.message}`;
                     console.error("Error updating country names:", error);
                 });
         }
@@ -665,7 +679,7 @@
         function editCommitteeName() {
             // Password removed
 
-            const oldCommitteeNameInput = prompt("Enter the CURRENT, FULL Committee Name to change (must be exact, e.g., 'Security Council 🔐'):").trim();
+            const oldCommitteeNameInput = prompt("Enter the CURRENT, FULL Committee Name to change (must be exact, e.g., 'Security Council'):").trim();
             if (!oldCommitteeNameInput) return;
 
             const newCommitteeNameInput = prompt(`Enter the NEW Committee Name to replace "${oldCommitteeNameInput}":`).trim();
@@ -698,11 +712,11 @@
                     });
 
                     if (foundMatch && updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ Committee "${oldCommitteeNameInput}" is already named "${newCommitteeNameInput}". No updates needed.`;
+                        document.getElementById('status').textContent = ` Committee "${oldCommitteeNameInput}" is already named "${newCommitteeNameInput}". No updates needed.`;
                         return;
                     }
                     if (!foundMatch) {
-                         document.getElementById('status').textContent = `❌ Error: No delegates found in committee "${oldCommitteeNameInput}". Please check the spelling and emoji.`;
+                         document.getElementById('status').textContent = ` Error: No delegates found in committee "${oldCommitteeNameInput}". Please check the spelling and emoji.`;
                          return;
                      }
 
@@ -714,14 +728,14 @@
                     if (updateCount > 0) {
                         return delegatesRef.update(updates)
                             .then(() => {
-                                document.getElementById('status').textContent = `✅ Successfully updated ${updateCount} delegate records. Committee name changed to "${newCommitteeNameInput}".`;
+                                document.getElementById('status').textContent = ` Successfully updated ${updateCount} delegate records. Committee name changed to "${newCommitteeNameInput}".`;
                             });
                     } else {
                          document.getElementById('status').textContent = `No updates were necessary for committee "${oldCommitteeNameInput}".`;
                     }
                 })
                 .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during committee name update: ${error.message}`;
+                    document.getElementById('status').textContent = ` Error during committee name update: ${error.message}`;
                     console.error("Error updating committee names:", error);
                 });
         }
@@ -761,10 +775,10 @@
 
             delegatesRef.update(updates)
                 .then(() => {
-                    document.getElementById('status').textContent = `✅ Renamed ${count} record(s).`;
+                    document.getElementById('status').textContent = ` Renamed ${count} record(s).`;
                 })
                 .catch(err => {
-                    document.getElementById('status').textContent = `❌ Error during bulk rename: ${err.message}`;
+                    document.getElementById('status').textContent = ` Error during bulk rename: ${err.message}`;
                 });
         }
         
@@ -787,7 +801,7 @@
             );
 
             if (!delegateToDelete) {
-                document.getElementById('status').textContent = `❌ Error: Delegate "${normalizedTargetName}" from "${normalizedTargetSchool}" not found.`;
+                document.getElementById('status').textContent = ` Error: Delegate "${normalizedTargetName}" from "${normalizedTargetSchool}" not found.`;
                 return;
             }
 
@@ -796,10 +810,10 @@
             if (confirm(`FINAL WARNING: Are you sure you want to permanently delete: \n\nName: ${delegateToDelete.name}\nSchool: ${delegateToDelete.school}\nCommittee: ${delegateToDelete.committee}\nCountry: ${delegateToDelete.country}`)) {
                 database.ref('delegates/' + key).remove()
                     .then(() => {
-                        document.getElementById('status').textContent = `✅ Successfully deleted delegate ${delegateToDelete.name} from ${delegateToDelete.school}.`;
+                        document.getElementById('status').textContent = ` Successfully deleted delegate ${delegateToDelete.name} from ${delegateToDelete.school}.`;
                     })
                     .catch(error => {
-                        document.getElementById('status').textContent = `❌ Error deleting delegate: ${error.message}`;
+                        document.getElementById('status').textContent = ` Error deleting delegate: ${error.message}`;
                     });
             }
         }
@@ -817,7 +831,7 @@
             const delegatesToDelete = allDelegates.filter(d => toSentenceCase(d.school) === schoolNameNormalized);
 
             if (delegatesToDelete.length === 0) {
-                document.getElementById('status').textContent = `❌ Error: No delegates found for school "${schoolNameNormalized}". Check spelling.`;
+                document.getElementById('status').textContent = ` Error: No delegates found for school "${schoolNameNormalized}". Check spelling.`;
                 return;
             }
 
@@ -835,10 +849,10 @@
 
             delegatesRef.update(updates)
                 .then(() => {
-                    document.getElementById('status').textContent = `✅ Successfully deleted ${delegatesToDelete.length} delegates from "${schoolNameNormalized}".`;
+                    document.getElementById('status').textContent = ` Successfully deleted ${delegatesToDelete.length} delegates from "${schoolNameNormalized}".`;
                 })
                 .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error deleting school: ${error.message}`;
+                    document.getElementById('status').textContent = ` Error deleting school: ${error.message}`;
                 });
         }
 
@@ -872,7 +886,7 @@
 
                 for (const firebaseKey in data) {
                     const delegate = data[firebaseKey];
-                    const uniqueKey = `${toSentenceCase(delegate.name)}::${toSentenceCase(delegate.school)}::${delegate.committee}::${formatCountryName(delegate.country)}`.toLowerCase();
+                    const uniqueKey = `${toSentenceCase(delegate.name)}::${toSentenceCase(delegate.school)}::${normalizeCommitteeName(delegate.committee)}::${formatCountryName(delegate.country)}`.toLowerCase();
 
                     if (delegateMap[uniqueKey]) {
                         duplicatesToDelete.push(firebaseKey);
@@ -882,7 +896,7 @@
                 }
 
                 if (duplicatesToDelete.length === 0) {
-                    document.getElementById('status').textContent = "✅ Scan complete. No duplicate entries were found.";
+                    document.getElementById('status').textContent = " Scan complete. No duplicate entries were found.";
                     return;
                 }
 
@@ -894,10 +908,10 @@
 
                 Promise.all(deletePromises)
                     .then(() => {
-                        document.getElementById('status').textContent = `✅ Successfully removed ${deletedCount} duplicate delegate entries from the database.`;
+                        document.getElementById('status').textContent = ` Successfully removed ${deletedCount} duplicate delegate entries from the database.`;
                     })
                     .catch(error => {
-                        document.getElementById('status').textContent = `❌ Error clearing duplicates: ${error.message}`;
+                        document.getElementById('status').textContent = ` Error clearing duplicates: ${error.message}`;
                         console.error("Error clearing duplicates:", error);
                     });
             });
@@ -927,7 +941,7 @@
                     const parts = key.split(" ");
                     const committeeShort = parts[0];
                     const countryNum = parts[2];
-                    const mappedCommittee = COMMITTEE_MAP[committeeShort] || committeeShort;
+                    const mappedCommittee = normalizeCommitteeName(COMMITTEE_MAP[committeeShort] || committeeShort);
                     let countryValue = countryNum === "1" ? country1NameProcessed : country2NameProcessed;
 
                     if (committeeShort === "HCC") {
@@ -962,7 +976,7 @@
         // --- DISPLAY FUNCTIONS (existing) ---
         function displayBySchool() {
             const grouped = groupBy(allDelegates, 'school');
-            let html = '<h2>🏫 Delegates by School</h2>';
+            let html = '<h2>Delegates by School</h2>';
             html += `<div class="button-group"><button class="btn export" onclick="exportBySchool()">Export this View</button></div>`;
             const sortedSchools = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
 
@@ -995,7 +1009,7 @@
                 html += `</div><ul>`;
                 schoolDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
                     const displayCountry = normalizeHCCCountry(d);
-                    html += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> - Committee: ${d.committee} (${displayCountry})</li>`;
+                    html += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> - Committee: ${normalizeCommitteeName(d.committee)} (${displayCountry})</li>`;
                 });
                 html += '</ul>';
             }
@@ -1004,7 +1018,7 @@
 
         function displayByCommittee() {
             const grouped = groupBy(allDelegates, 'committee');
-            let html = '<h2>📋 Delegates by Committee</h2>';
+            let html = '<h2>Delegates by Committee</h2>';
             html += `<div class="button-group"><button class="btn export" onclick="exportByCommittee()">Export this View</button></div>`;
             const sortedCommittees = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
 
@@ -1040,7 +1054,7 @@
             }));
 
             const grouped = groupBy(normalizedDelegates, 'country');
-            let html = '<h2>🌍 Delegates by Country</h2>';
+            let html = '<h2>Delegates by Country</h2>';
             html += `<div class="button-group"><button class="btn export" onclick="exportByCountry()">Export this View</button></div>`;
             const sortedCountries = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
 
@@ -1056,12 +1070,12 @@
                                                   .replace(/"/g, '&quot;');
                 
                 html += `<h3>
-                            <span>🇺🇳 ${country} (Delegates: ${countryDelegates.length})</span>
+                            <span>${country} (Delegates: ${countryDelegates.length})</span>
                             <button class="btn print" onclick="printCountryPDF('${escapedCountryName}')">Print PDF</button>
                          </h3>`;
                 html += `<ul>`;
                 countryDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    html += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Committee: ${d.committee}</li>`;
+                    html += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Committee: ${normalizeCommitteeName(d.committee)}</li>`;
                 });
                 html += '</ul>';
             }
@@ -1076,7 +1090,7 @@
             const sortedSchools = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
             for (const school of sortedSchools) {
                 grouped[school].sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    const row = [d.school, d.advisor1_email, d.advisor1_mobile, d.advisor2_email, d.advisor2_mobile, d.name, cleanText(d.committee), d.country];
+                    const row = [d.school, d.advisor1_email, d.advisor1_mobile, d.advisor2_email, d.advisor2_mobile, d.name, normalizeCommitteeName(d.committee), d.country];
                     csvContent += row.map(val => `"${(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
                 });
             }
@@ -1090,7 +1104,7 @@
             const sortedCommittees = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
             for (const committee of sortedCommittees) {
                 grouped[committee].sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                    const row = [cleanText(d.committee), d.name, d.school, d.country];
+                    const row = [normalizeCommitteeName(d.committee), d.name, d.school, d.country];
                     csvContent += row.map(val => `"${(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
                 });
             }
@@ -1104,7 +1118,7 @@
             const sortedCountries = Object.keys(grouped).sort((a, b) => a.localeCompare(b));
             for (const country of sortedCountries) {
                 grouped[country].sort((a, b) => a.name.localeCompare(b.name)).forEach(d => { 
-                    const row = [cleanText(d.country), d.name, d.school, cleanText(d.committee)];
+                    const row = [cleanText(d.country), d.name, d.school, normalizeCommitteeName(d.committee)];
                     csvContent += row.map(val => `"${(val || "").replace(/"/g, '""')}"`).join(",") + "\n";
                 });
             }
@@ -1125,6 +1139,28 @@
         function cleanText(str) {
             if (!str) return "";
             return str.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim();
+        }
+
+        function normalizeCommitteeName(name) {
+            if (!name) return "";
+            const cleaned = cleanText(String(name)).replace(/\s+/g, ' ').trim();
+
+            // Map known short codes and known committee names to canonical names
+            const upper = cleaned.toUpperCase();
+            if (COMMITTEE_MAP[cleaned]) return COMMITTEE_MAP[cleaned];
+            if (COMMITTEE_MAP[upper]) return COMMITTEE_MAP[upper];
+
+            // UN Women normalization (covers legacy "UN" and any case variations)
+            if (/^UN\s*WOMEN$/i.test(cleaned)) return "UN Women";
+            if (/^UN$/i.test(cleaned)) return "UN Women";
+
+            // If it already matches one of the canonical values (case-insensitive), return the canonical value
+            for (const k of Object.keys(COMMITTEE_MAP)) {
+                const v = COMMITTEE_MAP[k];
+                if (v && v.toLowerCase() === cleaned.toLowerCase()) return v;
+            }
+
+            return cleaned;
         }
 
         function toSentenceCase(str) {
@@ -1240,7 +1276,7 @@
 
             schoolDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
                 const displayCountry = normalizeHCCCountry(d);
-                listItemsHtml += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> - Committee: ${cleanText(d.committee)} (${displayCountry})</li>`;
+                listItemsHtml += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> - Committee: ${normalizeCommitteeName(d.committee)} (${displayCountry})</li>`;
             });
 
             const printHtml = generatePrintHTML(
@@ -1299,7 +1335,7 @@
             let listItemsHtml = '';
 
             countryDelegates.sort((a, b) => a.name.localeCompare(b.name)).forEach(d => {
-                listItemsHtml += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Committee: ${cleanText(d.committee)}</li>`;
+                listItemsHtml += `<li><strong>${delegateCounter++}.</strong> <b>${d.name}</b> (${d.school}) - Committee: ${normalizeCommitteeName(d.committee)}</li>`;
             });
 
             const printHtml = generatePrintHTML(
@@ -1351,17 +1387,17 @@
                     });
 
                     if (updateCount === 0) {
-                        document.getElementById('status').textContent = `✅ All ${processedCount} relevant country names are already correctly formatted. No updates needed.`;
+                        document.getElementById('status').textContent = ` All ${processedCount} relevant country names are already correctly formatted. No updates needed.`;
                         return;
                     }
 
                     return delegatesRef.update(updates)
                         .then(() => {
-                            document.getElementById('status').textContent = `✅ Successfully normalized ${updateCount} out of ${processedCount} relevant country names in the database.`;
+                            document.getElementById('status').textContent = ` Successfully normalized ${updateCount} out of ${processedCount} relevant country names in the database.`;
                         });
                })
                .catch(error => {
-                    document.getElementById('status').textContent = `❌ Error during country name cleanup: ${error.message}`;
+                    document.getElementById('status').textContent = ` Error during country name cleanup: ${error.message}`;
                     console.error("Error fixing country names:", error);
                });
         }
