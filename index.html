@@ -85,10 +85,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
 
     <script>
-        // --- PASSWORDS ---
-        const SHARED_PASSWORD = "329199p";
-        const CLEAR_DATA_PASSWORD = "panos26@";
-
         // Surface runtime errors instead of rendering a blank page
         window.addEventListener('error', function (ev) {
             try {
@@ -152,21 +148,6 @@
             console.error('Firebase init error:', e);
         }
         let allDelegates = [];
-
-        function checkPassword() {
-            const storedPassword = sessionStorage.getItem('pyleamun-auth');
-            if (storedPassword === SHARED_PASSWORD) {
-                initializeApp();
-                return;
-            }
-            const enteredPassword = prompt("Please enter the organizer password:", "");
-            if (enteredPassword === SHARED_PASSWORD) {
-                sessionStorage.setItem('pyleamun-auth', enteredPassword);
-                initializeApp();
-            } else if (enteredPassword) {
-                alert("Incorrect password.");
-            }
-        }
 
         function initializeApp() {
             document.getElementById('app-container').classList.remove('hidden');
@@ -291,12 +272,8 @@
 
         // *** NEW: Apply allocations from pasted PDF/text ***
         function applyPdfAllocations() {
-            const enteredPassword = prompt("Please enter the organizer password to apply PDF/Text allocations:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Operation cancelled.");
-                return;
-            }
-
+            // Password removed
+            
             const raw = document.getElementById('rawDataInput').value;
             if (!raw.trim()) {
                 document.getElementById('status').textContent = "⚠️ Paste the PDF or text content above, then try again.";
@@ -473,11 +450,7 @@
 
         // *** EDIT DELEGATE INFORMATION (existing) ***
         function editDelegateInfo() {
-            const enteredPassword = prompt("Please enter the organizer password to edit entry:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
+            // Password removed
 
             const targetName = prompt("Enter the Delegate's FULL NAME to find:").trim();
             if (!targetName) return;
@@ -546,11 +519,7 @@
 
         // *** EDIT SCHOOL NAME (existing) ***
         function editSchoolName() {
-            const enteredPassword = prompt("Please enter the organizer password to bulk edit school names:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
+            // Password removed
 
             const oldSchoolNameInput = prompt("Enter the CURRENT School Name to change (spelling must be precise, but case doesn't matter):").trim();
             if (!oldSchoolNameInput) return;
@@ -623,11 +592,7 @@
 
         // *** EDIT COUNTRY NAME MANUALLY (existing) ***
         function editCountryName() {
-            const enteredPassword = prompt("Please enter the organizer password to bulk edit country names:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
+            // Password removed
 
             const oldCountryNameInput = prompt("Enter the CURRENT Country Name to change (case doesn't matter):").trim();
             if (!oldCountryNameInput) return;
@@ -698,11 +663,7 @@
         
         // *** EDIT COMMITTEE NAME (existing) ***
         function editCommitteeName() {
-            const enteredPassword = prompt("Please enter the organizer password to bulk edit committee names:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Editing cancelled.");
-                return;
-            }
+            // Password removed
 
             const oldCommitteeNameInput = prompt("Enter the CURRENT, FULL Committee Name to change (must be exact, e.g., 'Security Council 🔐'):").trim();
             if (!oldCommitteeNameInput) return;
@@ -766,11 +727,7 @@
         }
         // *** BULK RENAME DELEGATE NAME (new) ***
         function bulkRenameDelegate() {
-            const enteredPassword = prompt("Enter organizer password to bulk rename a delegate:", "");
-            if (enteredPassword !== SHARED_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password.");
-                return;
-            }
+            // Password removed
 
             const oldName = prompt("Current FULL name to change (case-insensitive):");
             if (!oldName) return;
@@ -813,11 +770,7 @@
         
         // *** REMOVE SINGLE DELEGATE BY NAME/SCHOOL (existing) ***
         function removeSingleDelegate() {
-            const enteredPassword = prompt("Enter admin password to delete single entry:", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Deletion cancelled.");
-                return;
-            }
+            // Password removed
 
             const targetName = prompt("Enter the Delegate's FULL NAME to delete:").trim();
             if (!targetName) return;
@@ -853,11 +806,7 @@
 
         // *** NEW: DELETE ENTIRE SCHOOL ***
         function deleteSchool() {
-            const enteredPassword = prompt("Enter admin password to delete an ENTIRE school:", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Deletion cancelled.");
-                return;
-            }
+            // Password removed
 
             const schoolNameInput = prompt("Enter the School Name to delete (ALL delegates from this school will be removed):").trim();
             if (!schoolNameInput) return;
@@ -894,23 +843,15 @@
         }
 
         function clearAllData() {
-            const enteredPassword = prompt("This is a destructive action. Please enter the admin password to clear all data:", "");
-            if (enteredPassword === CLEAR_DATA_PASSWORD) {
-                if (confirm("FINAL CONFIRMATION: Are you sure you want to permanently delete ALL delegate data?")) {
-                    delegatesRef.remove();
-                }
-            } else if (enteredPassword) {
-                alert("Incorrect password. Data was not cleared.");
+            // Password removed
+            if (confirm("FINAL CONFIRMATION: Are you sure you want to permanently delete ALL delegate data?")) {
+                delegatesRef.remove();
             }
         }
 
         // --- DUPLICATE CLEAR FUNCTION (existing) ---
         function handleClearDuplicates() {
-            const enteredPassword = prompt("Please enter the admin password to clear duplicate entries:", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Duplicate clear was cancelled.");
-                return;
-            }
+            // Password removed
 
             if (!confirm("CONFIRMATION: Are you sure you want to scan for and delete duplicate delegate entries?")) {
                 return;
@@ -1377,11 +1318,8 @@
 
         // *** FIX ALL EXISTING COUNTRY CASES (existing) ***
         function fixAllCountryCases() {
-            const enteredPassword = prompt("Enter ADMIN password to normalize all country names in the database (Sentence Case, except USA/UK):", "");
-            if (enteredPassword !== CLEAR_DATA_PASSWORD) {
-                if (enteredPassword) alert("Incorrect password. Cleanup cancelled.");
-                return;
-            }
+            // Password removed
+
             if (!confirm("Are you sure you want to scan and update ALL country names (except HCC) to Sentence Case (unless they are USA or UK)? This is a one-time operation.")) {
                 document.getElementById('status').textContent = `Country name cleanup cancelled.`;
                 return;
@@ -1429,7 +1367,7 @@
         }
 
         // --- START THE APP ---
-        checkPassword();
+        initializeApp();
     </script>
 </body>
 </html>
