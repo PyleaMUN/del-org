@@ -730,13 +730,60 @@
         }
 
         function normalizeHCCCountry(d) { return (d && d.country === HCC_COUNTRY_VALUE) ? HCC_COUNTRY_VALUE : (d ? d.country : ""); }
-        function cleanText(str) { return str ? str.replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '').trim() : ""; }
+        function cleanText(str) {
+            // Remove emoji/symbol ranges + invisible characters that can cause "duplicate" committee names (e.g., NATO vs NATO\u200B)
+            return str ? String(str)
+                .replace(/[\u200B-\u200D\uFEFF]/g, '')        // zero-width chars
+                .replace(/\u00A0/g, ' ')                        // NBSP → space
+                .replace(/[\u2010-\u2015]/g, '-')              // normalize dashes
+                .replace(/[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]/g, '')
+                .trim()
+            : "";
+        }
         function normalizeCommitteeName(name) {
             if (!name) return "";
             const cleaned = cleanText(String(name)).replace(/\s+/g, ' ').trim();
+
+            // Canonicalize to avoid duplicates caused by punctuation/spacing/spelling variants
+            const canonical = cleaned.toLowerCase().replace(/[^a-z0-9]/g, '');
+
+            const CANONICAL_COMMITTEE = {
+                unep: "UN Environment Programme",
+                unenvironprogramme: "UN Environment Programme",
+                unenvironprogram: "UN Environment Programme",
+
+                sc: "Security Council",
+                securitycouncil: "Security Council",
+
+                ecosoc: "Economic & Social Council",
+                economicandsocialcouncil: "Economic & Social Council",
+
+                nato: "NATO",
+                northatlantictreatyorganization: "NATO",
+                northatlantictreatyorganisation: "NATO",
+
+                who: "World Health Organisation",
+                worldhealthorganisation: "World Health Organisation",
+                worldhealthorganization: "World Health Organisation",
+
+                hrc: "Human Rights Council",
+                humanrightscouncil: "Human Rights Council",
+
+                unesco: "UNESCO",
+
+                unwomen: "UN Women",
+                un: "UN Women",
+
+                hcc: "Historical Crisis Committee",
+                historicalcrisiscommittee: "Historical Crisis Committee"
+            };
+
+            if (CANONICAL_COMMITTEE[canonical]) return CANONICAL_COMMITTEE[canonical];
+
             const upper = cleaned.toUpperCase();
             if (COMMITTEE_MAP[cleaned]) return COMMITTEE_MAP[cleaned];
             if (COMMITTEE_MAP[upper]) return COMMITTEE_MAP[upper];
+
             if (/^UN\s*WOMEN$/i.test(cleaned) || /^UN$/i.test(cleaned)) return "UN Women";
             for (const k in COMMITTEE_MAP) if (COMMITTEE_MAP[k].toLowerCase() === cleaned.toLowerCase()) return COMMITTEE_MAP[k];
             return cleaned;
